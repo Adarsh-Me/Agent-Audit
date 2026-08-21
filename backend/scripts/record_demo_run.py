@@ -33,7 +33,7 @@ class DeterministicClient:
 async def main() -> None:
     from sqlalchemy import select
 
-    from app.db.models import Catalog, Remediation
+    from app.db.models import Remediation
     from app.db.session import get_sessionmaker, init_db
     from app.engine.model_registry import load_model_registry
     from app.engine.runner import Runner, RunnerDeps
@@ -78,7 +78,7 @@ async def main() -> None:
 
     MANIFEST_PATH.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     print(f"demo run recorded: original={original} rerun={rerun}")
-    print(f"score:", manifest["metrics"].get("score"))
+    print("score:", manifest["metrics"].get("score"))
 
 
 if __name__ == "__main__":

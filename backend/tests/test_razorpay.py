@@ -22,6 +22,20 @@ def _link_resp(link_id="plink_test123", amount=99900):
     }, request=httpx.Request("POST", "https://api.razorpay.com/v1/payment_links"))
 
 
+def _dispatching_handler(seen=None):
+    """Serve both POST /payment_links and GET /payment_links/{id} with one body."""
+    def handler(request: httpx.Request) -> httpx.Response:
+        if seen is not None:
+            seen.setdefault("methods", []).append(request.method)
+            seen["last_url"] = str(request.url)
+        body = {
+            "id": "plink_test123", "short_url": "https://rzp.io/i/plink_test123",
+            "amount": 99900, "status": "created",
+        }
+        return httpx.Response(200, json=body, request=request)
+    return handler
+
+
 async def test_create_payment_link_mocked():
     seen = {}
 
@@ -46,6 +60,26 @@ async def test_create_payment_link_mocked():
         await client.aclose()
 
 
+async def test_fetch_payment_link_mocked():
+    seen = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen["url"] = str(request.url)
+        return _link_resp(amount=149900)
+
+    client = RazorpayClient("key_test", "secret_test",
+                            http_client=httpx.AsyncClient(
+                                transport=httpx.MockTransport(handler)))
+    try:
+        link = await client.fetch_payment_link("plink_test123")
+        assert link.id == "plink_test123"
+        assert link.short_url == "https://rzp.io/i/plink_test123"
+        assert link.amount_inr == 1499  # paise → rupees on the way back
+        assert seen["url"].endswith("/v1/payment_links/plink_test123")
+    finally:
+        await client.aclose()
+
+
 def test_webhook_signature_math():
     body = b'{"event":"payment_link.captured"}'
     secret = "whsec_test"
@@ -66,14 +100,13 @@ async def _seed_run(db_env) -> str:
 
 async def test_payment_link_endpoint_and_status(db_env, monkeypatch):
     run_id = await _seed_run(db_env)
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        return _link_resp()
+    seen: dict = {}
 
     def fake_client():
         return RazorpayClient("key_test", "secret_test",
                               http_client=httpx.AsyncClient(
-                                  transport=httpx.MockTransport(handler)))
+                                  transport=httpx.MockTransport(
+                                      _dispatching_handler(seen))))
 
     monkeypatch.setattr("app.routers.payments._client", fake_client)
 
@@ -89,10 +122,12 @@ async def test_payment_link_endpoint_and_status(db_env, monkeypatch):
             body = r.json()
             assert body["amount_inr"] == 999 and body["status"] == "created"
 
-            # idempotent replay — same link, no new charge
+            # idempotent replay — same link, no new charge; short_url re-fetched live
             r2 = tc.post("/api/payments/link", json={"run_id": run_id, "sku": "sku_007"})
             assert r2.json()["idempotent_replay"] is True
             assert r2.json()["razorpay_link_id"] == body["razorpay_link_id"]
+            assert r2.json()["short_url"] == "https://rzp.io/i/plink_test123"
+            assert seen.get("methods", []) == ["POST", "GET"]
 
             # status endpoint pre-capture
             s = tc.get(f"/api/payments/{run_id}/status").json()

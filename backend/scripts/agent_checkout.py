@@ -38,7 +38,6 @@ async def main(run_id: str) -> None:
             raise SystemExit(f"run {run_id} not found")
 
         catalog_id = run.catalog_id
-        cat = await session.get(Catalog, catalog_id)
         # an agent should buy from the FIXED catalog when one exists
         mirror = (await session.execute(
             select(Catalog)

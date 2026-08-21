@@ -59,10 +59,9 @@ async def _full_loop(db_env):
         await session.commit()
 
         # hero's title fix matches APPFLOW verbatim
-        from app.db.models import Product
-        hero_rem = next(r for r in rems)
-        hero_fixes = {f["field"]: f for f in hero_rem.fixes}
         # find sku_023's remediation specifically
+        from app.db.models import Product
+
         for r in rems:
             p = await session.get(Product, r.product_id)
             if p.sku == "sku_023":

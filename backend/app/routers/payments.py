@@ -1,6 +1,7 @@
 """Payments + Razorpay webhook — agent-to-ledger proof (TECHSPEC §12, SCHEMA §9).
 
-POST /api/payments/link      idempotent per (run_id, sku) — replays return the same link
+POST /api/payments/link      idempotent per (run_id, sku) — replays return the same
+                             link with short_url re-fetched live
 GET  /api/payments/{run_id}/status   webhook-badge polling (target ≤ 5 s)
 POST /api/webhooks/razorpay          HMAC-verified, deduped via webhook_events
 """
@@ -10,12 +11,13 @@ from fastapi import APIRouter, Depends, Request, Response
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+import httpx
 
 from app.config import get_settings
 from app.db.models import Payment, Product, Run, WebhookEvent
 from app.db.session import get_session
 from app.errors import AppError
-from app.razorpay.client import RazorpayClient
+from app.razorpay.client import RazorpayClient, RazorpayError
 
 router = APIRouter()
 
@@ -43,9 +45,20 @@ async def create_link(body: LinkRequest,
     idem = f"agentaudit:{body.run_id}:{body.sku}"
     existing = await session.scalar(select(Payment).where(Payment.idempotency_key == idem))
     if existing is not None:
+        # Replay: re-fetch the live link so short_url is always present (the frozen
+        # DDL has no short_url column). If Razorpay is unreachable we still return
+        # the DB state — the caller just gets short_url="" and can retry.
+        rp = _client()
+        try:
+            link = await rp.fetch_payment_link(existing.razorpay_link_id)
+            short_url = link.short_url
+        except (RazorpayError, httpx.HTTPError):
+            short_url = ""
+        finally:
+            await rp.aclose()
         return {"payment_id": existing.id, "razorpay_link_id": existing.razorpay_link_id,
-                "amount_inr": existing.amount_inr, "status": existing.status,
-                "idempotent_replay": True}
+                "short_url": short_url, "amount_inr": existing.amount_inr,
+                "status": existing.status, "idempotent_replay": True}
 
     product = await session.scalar(
         select(Product).where(Product.catalog_id == run.catalog_id,

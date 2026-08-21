@@ -63,3 +63,15 @@ class RazorpayClient:
         data = resp.json()
         return PaymentLink(id=data["id"], short_url=data.get("short_url", ""),
                            amount_inr=amount_inr, status=data.get("status", "created"))
+
+    async def fetch_payment_link(self, link_id: str) -> PaymentLink:
+        """GET /v1/payment_links/{id} — replays use this so short_url stays fresh."""
+        resp = await self._client.get(f"{API_BASE}/payment_links/{link_id}",
+                                      auth=self._auth)
+        if resp.status_code >= 400:
+            raise RazorpayError(
+                f"payment link fetch failed ({resp.status_code}): {resp.text[:200]}")
+        data = resp.json()
+        return PaymentLink(id=data["id"], short_url=data.get("short_url", ""),
+                           amount_inr=int(data.get("amount", 0)) // 100,  # paise → ₹
+                           status=data.get("status", "created"))
