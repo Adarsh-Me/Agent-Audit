@@ -19,6 +19,7 @@ seed-demo:
 serve-demo:
 	cd demo-store/site && python -m http.server 8080
 
+# one-time install required: cd frontend && npm i -D @playwright/test && npx playwright install chromium
 e2e:
 	cd frontend && npx playwright test
 

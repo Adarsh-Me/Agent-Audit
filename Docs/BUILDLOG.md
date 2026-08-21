@@ -82,3 +82,11 @@ This is a deliverable, not a diary — it demonstrates engineering process to ju
 - **Spent:** $0 (all Razorpay traffic mocked).
 - **Decided:** secrets stay server-side; frontend/MCP/agents only ever see short_url.
 - **Tomorrow's risk:** e2e smoke + final polish.
+
+## Day 14 — Frontend, payments reconciliation, e2e smoke (Aug 22)
+
+- **Shipped:** full frontend src/ committed — home, audit flow, results/revenue/fixes, delta, agent checkout; api.ts typed against the real router shapes; Ci/Dial/Bits components. Payments contract reconciled on both sides: new `RazorpayClient.fetch_payment_link` (GET /v1/payment_links/{id}) so idempotent replays always return a fresh short_url (frozen DDL has no short_url column); unreachable Razorpay degrades replay to `short_url:""` instead of a 500; FE checkout polls the real status shape (`{payments[], captured}`) and the stale "payments API not implemented" branch is gone. HTTP-level e2e smoke vs production builds: catalog (+baseline order), 404 envelopes (audit/report/delta/payments), uploads E103/E107 gates, webhook E501 HMAC rejection, empty-status shape `{run_id, payments:[], captured:false}`, FE `/` and `/checkout/[runId]` render 200.
+- **Broke:** nothing in the product — two smoke probes were harness bugs (PowerShell quote-mangling the JSON body; CSV header named `sku` where the spec says `id`). Retested correctly, both green.
+- **Spent:** $0.
+- **Decided:** `make e2e` stays stubbed pending install approval (`npm i -D @playwright/test` + `npx playwright install chromium`); the HTTP smoke covers integration risk until then. Ruff lint debt in scripts/tests cleaned (74 backend tests green).
+- **Still open before submission:** OPENROUTER_API_KEY (live 640-trial run + model re-pin) and Razorpay test keys + webhook secret (live link→webhook→capture proof).
