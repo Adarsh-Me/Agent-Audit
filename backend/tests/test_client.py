@@ -24,7 +24,14 @@ def _resp(status: int = 200, content: str = '{"product_id": "sku_007", "reason":
 
 @pytest.fixture
 def entry():
-    return load_model_registry().bulk[0]  # gpt4o-mini
+    return load_model_registry().bulk[0]  # ox-alpha
+
+
+def _mock_client(handler):
+    return OpenRouterClient(
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+        min_interval_s=0,  # no rate-cap pacing under MockTransport
+    )
 
 
 async def test_success_and_cost_math(entry):
@@ -34,15 +41,15 @@ async def test_success_and_cost_math(entry):
         calls.append(json.loads(request.content))
         return _resp()
 
-    client = OpenRouterClient(http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)))
+    client = _mock_client(handler)
     try:
         out = await client.chat(entry, "prompt", seed=1)
         assert out.choice if hasattr(out, "choice") else True
         assert out.content.startswith('{"product_id"')
         assert out.latency_ms >= 0
-        assert abs(out.cost_usd - estimate_cost_usd("gpt4o-mini", 500, 50)) < 1e-9
-        # seed passed when provider supports it; json mode requested
-        assert calls[0]["seed"] == 1
+        assert abs(out.cost_usd - estimate_cost_usd("ox-alpha", 500, 50)) < 1e-9
+        # json mode requested; seed omitted because pinned models don't support it
+        assert "seed" not in calls[0]
         assert calls[0]["response_format"] == {"type": "json_object"}
     finally:
         await client.aclose()
@@ -57,9 +64,7 @@ async def test_retries_on_5xx_then_succeeds(entry):
             return _resp(status=500)
         return _resp()
 
-    client = OpenRouterClient(
-        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler))
-    )
+    client = _mock_client(handler)
     try:
         out = await client.chat(entry, "p", seed=2)
         assert out.prompt_tokens == 500
@@ -72,9 +77,7 @@ async def test_circuit_breaker_opens_after_threshold(entry):
     def handler(request: httpx.Request) -> httpx.Response:
         return _resp(status=400)  # hard 4xx → immediate failure, no retry
 
-    client = OpenRouterClient(
-        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler))
-    )
+    client = _mock_client(handler)
     try:
         opened = False
         for _ in range(10):
@@ -98,5 +101,8 @@ def test_cost_ledger_cap():
 
 
 def test_estimate_cost_known_models():
-    assert estimate_cost_usd("gpt4o-mini", 1_000_000, 0) == pytest.approx(0.15)
-    assert estimate_cost_usd("claude-haiku", 0, 1_000_000) == pytest.approx(4.0)
+    # all pinned models are $0.00 on OpenRouter as of the 2026-08-22 re-pin
+    assert estimate_cost_usd("ox-alpha", 1_000_000, 0) == pytest.approx(0.0)
+    assert estimate_cost_usd("nemotron-flash", 0, 1_000_000) == pytest.approx(0.0)
+    # unknown ids fall back to a conservative $1/M so surprises surface in the ledger
+    assert estimate_cost_usd("not-in-table", 0, 1_000_000) == pytest.approx(1.0)

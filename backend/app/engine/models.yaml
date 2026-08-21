@@ -1,27 +1,42 @@
 # Model pins — single source of truth (TECHSPEC §2/§3.2).
-# Versions below are best-known snapshots; RE-PIN against OpenRouter GET /models
-# on the day OPENROUTER_API_KEY is provisioned (Day 0 prerequisite P1), then never
-# change mid-project. Every trial row records the version it actually ran against.
+# RE-PINNED 2026-08-22 against live GET /models on provisioning day, per the Day-0
+# instruction. User-directed primary/fallback pair:
+#   primary  stealth/ox-alpha            (stealth provider, $0.00/1M tok)
+#   fallback nvidia/nemotron-3.5-lightning:free ($0.00/1M tok)
+# Third bulk slot: openai/gpt-oss-20b:free ($0.00/1M tok) — z-ai/glm-5.2:free was
+# probed first but its free pool was saturated (429 even on spaced single calls),
+# which would abort the run via triple-fail; gpt-oss-20b probed clean.
+# Flagship slots carry the same primary/fallback pair for the P07 checkout demo.
+# All five price at $0.00 today; engine-id rows in client.py PRICING_USD_PER_MTOK
+# must mirror that.
 bulk:
-  - id: gpt4o-mini
-    openrouter_id: openai/gpt-4o-mini
-    version: "gpt-4o-mini-2024-07-18"
+  - id: ox-alpha
+    openrouter_id: stealth/ox-alpha
+    version: "stealth/ox-alpha@2026-08-22"
+    json_mode: true          # probed live before the recorded run; flip to false on 4xx
+    seed_supported: false    # stealth endpoint ignores seed
+  - id: nemotron-flash
+    openrouter_id: nvidia/nemotron-3.5-lightning:free
+    version: "nemotron-3.5-lightning:free@2026-08-22"
     json_mode: true
-    seed_supported: true
-  - id: gemini-flash
-    openrouter_id: google/gemini-flash-1.5
-    version: "gemini-1.5-flash-002"
+    seed_supported: false    # :free endpoints ignore seed; CI absorbs variance
+  - id: gpt-oss
+    openrouter_id: openai/gpt-oss-20b:free
+    version: "gpt-oss-20b:free@2026-08-22"
     json_mode: true
-    seed_supported: true     # verify Day-3 spike; see Q2 in PRD §24
-  - id: claude-haiku
-    openrouter_id: anthropic/claude-3-5-haiku
-    version: "claude-3-5-haiku-20241022"
-    json_mode: true
-    seed_supported: false    # seed recorded anyway; CI absorbs variance
+    seed_supported: false
 flagship:
-  - id: gpt4o
-    openrouter_id: openai/gpt-4o
-    version: "gpt-4o-2024-11-20"
-  - id: gemini-pro
-    openrouter_id: google/gemini-1.5-pro
-    version: "gemini-1.5-pro-002"
+  # version carries a -flagship suffix ON PURPOSE: flagship trials reuse (P07,
+  # condition) slots already run by bulk, and the response cache keys on
+  # (prompt_hash, model_version) — identical labels would let flagship rows
+  # silently ride bulk cache entries.
+  - id: ox-alpha-flagship
+    openrouter_id: stealth/ox-alpha
+    version: "stealth/ox-alpha@2026-08-22-flagship"
+    json_mode: true
+    seed_supported: false
+  - id: nemotron-flagship
+    openrouter_id: nvidia/nemotron-3.5-lightning:free
+    version: "nemotron-3.5-lightning:free@2026-08-22-flagship"
+    json_mode: true
+    seed_supported: false

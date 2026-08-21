@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 import time
 from dataclasses import dataclass, field
+from typing import Final
 
 import httpx
 
@@ -26,13 +27,22 @@ from app.engine.model_registry import ModelEntry
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 # USD per 1M tokens (input, output) — engine ids per SCHEMA §2.3.
+# Re-pin 2026-08-22: all five pinned models are $0.00 on OpenRouter today.
+# Rows MUST exist for every engine id — the (1.0, 1.0) fallback below would
+# otherwise bill phantom cost toward the run's cap.
 PRICING_USD_PER_MTOK: dict[str, tuple[float, float]] = {
-    "gpt4o-mini": (0.15, 0.60),
-    "gemini-flash": (0.075, 0.30),
-    "claude-haiku": (0.80, 4.00),
-    "gpt4o": (2.50, 10.00),
-    "gemini-pro": (1.25, 5.00),
+    "ox-alpha": (0.0, 0.0),
+    "nemotron-flash": (0.0, 0.0),
+    "gpt-oss": (0.0, 0.0),
+    "ox-alpha-flagship": (0.0, 0.0),
+    "nemotron-flagship": (0.0, 0.0),
 }
+
+# Free-tier endpoints allow ~20 requests/min; a triple-429 trial aborts the whole
+# run to partial (runner catches ProviderError), so pace call STARTS globally to
+# stay under the cap with headroom. Latency (~seconds) hides most of this interval,
+# so wall-clock impact is minimal for the sequential trial loop.
+MIN_REQUEST_INTERVAL_S: Final = 3.2
 
 
 def estimate_cost_usd(model_id: str, prompt_tokens: int, completion_tokens: int) -> float:
@@ -105,11 +115,27 @@ class CostLedger:
 
 class OpenRouterClient:
     def __init__(self, http_client: httpx.AsyncClient | None = None,
-                 api_key: str | None = None, concurrency: int = ENGINE_CONCURRENCY) -> None:
+                 api_key: str | None = None, concurrency: int = ENGINE_CONCURRENCY,
+                 min_interval_s: float | None = None) -> None:
         self._client = http_client or httpx.AsyncClient(timeout=60.0)
         self._api_key = api_key if api_key is not None else get_settings().openrouter_api_key
         self._semaphore = asyncio.Semaphore(concurrency)
         self.breakers: dict[str, CircuitBreaker] = {}
+        self._min_interval = (MIN_REQUEST_INTERVAL_S if min_interval_s is None
+                              else min_interval_s)
+        self._last_start = 0.0
+
+    async def _pace(self) -> None:
+        """Global min-interval between request starts (free-tier rate-cap guard)."""
+        if self._min_interval <= 0:
+            return
+        while True:
+            now = time.monotonic()
+            wait = self._last_start + self._min_interval - now
+            if wait <= 0:
+                self._last_start = now
+                return
+            await asyncio.sleep(wait)
 
     async def aclose(self) -> None:
         await self._client.aclose()
@@ -148,6 +174,7 @@ class OpenRouterClient:
         for attempt in range(3):
             try:
                 async with self._semaphore:
+                    await self._pace()
                     t0 = time.monotonic()
                     resp = await self._client.post(OPENROUTER_URL, json=payload, headers=headers)
                     latency_ms = int((time.monotonic() - t0) * 1000)
