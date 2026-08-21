@@ -29,11 +29,11 @@ class AuditRequest(BaseModel):
     parent_run_id: str | None = None  # present → this is a verified re-run
 
 
-def _resolve_catalog_id(session: AsyncSession, req: AuditRequest) -> str:
+async def _resolve_catalog_id(session: AsyncSession, req: AuditRequest) -> str:
     if req.catalog_id:
         return req.catalog_id
     # default: latest demo catalog
-    cid = session.scalar(
+    cid = await session.scalar(
         select(Catalog.id).where(Catalog.source == "demo").order_by(Catalog.created_at.desc())
     )
     if cid is None:
@@ -68,8 +68,7 @@ async def create_audit(req: AuditRequest, background: BackgroundTasks,
         catalog_id = req.catalog_id
         if not catalog_id:
             # latest mirror of the parent run's catalog
-            from app.db.models import Catalog
-            catalog_id = session.scalar(
+            catalog_id = await session.scalar(
                 _sel(Catalog.id)
                 .where(Catalog.source == "mirror",
                        Catalog.parent_catalog_id == parent.catalog_id)
@@ -79,7 +78,7 @@ async def create_audit(req: AuditRequest, background: BackgroundTasks,
             raise AppError("E401", "no mirror catalog found — approve fixes and build the "
                                    "mirror before re-running", status_code=409)
     else:
-        catalog_id = _resolve_catalog_id(session, req)
+        catalog_id = await _resolve_catalog_id(session, req)
 
     run = Run(
         id=str(uuidlib.uuid4()),
@@ -101,7 +100,9 @@ async def create_audit(req: AuditRequest, background: BackgroundTasks,
         async def cb(event: dict) -> None:
             await bus.publish(run.id, event)
 
-        await execute_run(get_sessionmaker(), RunnerDeps(), catalog_id, progress=cb)
+        # adopt the row created above so the returned audit_id IS the live run
+        await execute_run(get_sessionmaker(), RunnerDeps(), catalog_id,
+                          progress=cb, run_id=run.id)
 
     background.add_task(job)
     return {"audit_id": run.id, "status": "queued", "trials_total": 640}

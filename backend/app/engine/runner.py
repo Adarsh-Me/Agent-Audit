@@ -88,7 +88,11 @@ class Runner:
         self.deps = deps or RunnerDeps()
 
     async def run_audit(self, catalog_id: str, *, parent_run_id: str | None = None,
-                        type_: str = "audit", progress: ProgressCb | None = None) -> str:
+                        type_: str = "audit", progress: ProgressCb | None = None,
+                        run_id: str | None = None) -> str:
+        """Execute the full matrix. If run_id is given, ADOPT that existing row
+        (created by the API layer so the returned audit id is the live run)
+        instead of inserting a second one."""
         settings = get_settings()
         cap = self.deps.cost_cap_usd if self.deps.cost_cap_usd is not None else (
             settings.cost_cap_usd if settings.cost_cap_usd else COST_CAP_USD
@@ -96,20 +100,30 @@ class Runner:
         ledger = CostLedger(cap_usd=cap)
 
         async with self.session_factory() as session:
-            run = Run(
-                catalog_id=catalog_id,
-                parent_run_id=parent_run_id,
-                type=type_,
-                status="queued",
-                models=self.deps.registry.snapshot(),
-                seeds={
-                    "spec_version": 1,
-                    "trial": "int(sha256('trial|{persona}|{condition}')[:8],16) % 2^31",
-                    "shuffle": "int(sha256('shuffle|{condition}')[:8],16) % 2^31",
-                },
-                trials_total=640,
-            )
-            session.add(run)
+            if run_id is not None:
+                run = await session.get(Run, run_id)
+                assert run is not None, f"adopted run {run_id} not found"
+                run.catalog_id = catalog_id
+                run.type = type_
+                if parent_run_id:
+                    run.parent_run_id = parent_run_id
+                run.status = "queued"
+            else:
+                run = Run(
+                    catalog_id=catalog_id,
+                    parent_run_id=parent_run_id,
+                    type=type_,
+                    status="queued",
+                    trials_total=640,
+                )
+                session.add(run)
+            run.models = self.deps.registry.snapshot()
+            run.seeds = {
+                "spec_version": 1,
+                "trial": "int(sha256('trial|{persona}|{condition}')[:8],16) % 2^31",
+                "shuffle": "int(sha256('shuffle|{condition}')[:8],16) % 2^31",
+            }
+            run.trials_total = 640
             await session.commit()
             run_id = run.id
 
