@@ -11,6 +11,7 @@ from app.constants import RATE_LIMIT_POST_RPM
 from app.db.session import init_db
 from app.errors import AppError, error_payload
 from app.routers import catalog as catalog_router
+from app.routers import uploads as uploads_router
 
 
 @asynccontextmanager
@@ -59,6 +60,7 @@ async def app_error_handler(_: Request, exc: AppError) -> JSONResponse:
 
 
 app.include_router(catalog_router.router)
+app.include_router(uploads_router.router)
 
 
 @app.get("/healthz")
