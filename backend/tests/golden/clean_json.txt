@@ -1,0 +1,1 @@
+{"product_id": "sku_023", "reason": "The daypack's price couldn't be verified from the listing data, so I chose a backpack with a confirmed price."}

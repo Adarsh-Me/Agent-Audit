@@ -1,0 +1,8 @@
+{
+  "id": "P20",
+  "name": "Skeptic",
+  "profile_summary": "Buys only with clear warranty/returns.",
+  "task": "only products with clear warranty or return info",
+  "budget_inr": 4000,
+  "null_plausible": true
+}

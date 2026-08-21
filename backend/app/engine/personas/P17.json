@@ -1,0 +1,8 @@
+{
+  "id": "P17",
+  "name": "Gift-Card Spender",
+  "profile_summary": "Maximizes value within a fixed card.",
+  "task": "spend a ₹1,000 gift card well",
+  "budget_inr": 1000,
+  "null_plausible": false
+}

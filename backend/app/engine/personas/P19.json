@@ -1,0 +1,8 @@
+{
+  "id": "P19",
+  "name": "Trend Follower",
+  "profile_summary": "Goes with popularity and ratings.",
+  "task": "whatever's most popular / best-rated",
+  "budget_inr": 3000,
+  "null_plausible": false
+}

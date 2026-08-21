@@ -1,0 +1,7 @@
+Here is my selection:
+
+```json
+{"product_id": "sku_007", "reason": "Best value-for-money with verified specs."}
+```
+
+Let me know if you need anything else.

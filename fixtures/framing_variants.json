@@ -1,0 +1,47 @@
+{
+  "_meta": {
+    "purpose": "C3-B framing variants — information-equivalent rewrites of the original listings (same facts, different emphasis/order/wording). Human-authored, committed, never live-generated in the demo path (PRD §8.7).",
+    "stratification": {"rich": ["sku_007", "sku_017", "sku_029"], "medium": ["sku_001", "sku_011", "sku_022", "sku_033"], "starved": ["sku_005", "sku_023", "sku_035"]},
+    "anchors": "includes sku_007 (modal) and sku_023 (invisible hero) per T3.4"
+  },
+  "sku_007": {
+    "title_b": "Leak-Proof Vacuum Steel Bottle — HydroMax Elite, 750ml, 24h Cold",
+    "description_b": "18/8 food-grade steel with double-wall vacuum insulation holds drinks cold for 24 hours and hot for 12. Scratch- and sweat-resistant powder-coated matte shell; leak-proof twist cap with carry loop; fits standard car cup holders; 310g; BPA-free; insulation covered by a lifetime warranty."
+  },
+  "sku_017": {
+    "title_b": "Matte Black AquaSteel Pro — 1L Insulated Bottle",
+    "description_b": "BPA-free with a leak-proof cap; 290g; 24h cold and 12h hot performance; double-walled 18/8 steel construction."
+  },
+  "sku_029": {
+    "title_b": "Ventilated-Back 30L Trek Pack — Hydration-Ready, Stowed Rain Cover (RidgeLine)",
+    "description_b": "Ripstop-nylon 30L trek backpack whose air-mesh back panel keeps your back dry; rain cover stows in the base pocket. Hydration bladder sleeve with exit port; padded 16-inch laptop sleeve; trekking-pole attachment; whistle-buckle sternum strap; load-lifters ease steep ascents; 980g; stitching guaranteed for life."
+  },
+  "sku_001": {
+    "title_b": "650ml Sipper Bottle for Everyday College Use — CampusSip",
+    "description_b": "Everyday college sipper in a lightweight 650ml body. Flip cap resists leaks; translucent walls carry volume markings; shaped to fit backpack side pockets."
+  },
+  "sku_011": {
+    "title_b": "TWS Earbuds with Charging Case — AirDuet Buds",
+    "description_b": "True-wireless earbuds complete with a charging case. Bluetooth 5.0, touch controls, IPX4 splash resistance for workouts, and dependable everyday battery life."
+  },
+  "sku_022": {
+    "title_b": "25L College Backpack with Organiser Panel — CampusCarry",
+    "description_b": "Organiser-panelled 25L backpack built for campus loads: notebooks, charger bricks, and a 15-inch laptop. Reinforced base stands up to daily abuse; bottle pockets on both sides."
+  },
+  "sku_033": {
+    "title_b": "Fabric Resistance Bands, Set of Five — PulseBand",
+    "description_b": "Five colour-coded fabric resistance bands spanning light to extra-heavy resistance. Non-roll weave stays put mid-move; door anchor and printed workout guide included."
+  },
+  "sku_005": {
+    "title_b": "Water Bottle",
+    "description_b": "A water bottle that is good quality."
+  },
+  "sku_023": {
+    "title_b": "Daypack",
+    "description_b": "Durable daily-use daypack."
+  },
+  "sku_035": {
+    "title_b": "Fitness Kit",
+    "description_b": "Complete home fitness kit."
+  }
+}
