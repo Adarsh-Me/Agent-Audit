@@ -1,0 +1,4 @@
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+exclude = [".venv", "frontend/node_modules", "demo-store/site", "backend/.pytest_cache"]

@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.pytest_tmp/
+*.egg-info/
+
+# Env & secrets
+.env
+
+# Local databases
+*.db
+*.sqlite3
+
+# Node / frontend
+node_modules/
+.next/
+out/
+
+# Playwright
+test-results/
+playwright-report/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

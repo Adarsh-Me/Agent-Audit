@@ -1,0 +1,15 @@
+# Scoring configuration — weights must sum to 1.0 (boot-checked; E402 otherwise).
+# constants.py mirrors these values; tests/test_constants.py enforces sync.
+weights:
+  visibility: 0.20
+  stability: 0.20
+  position_indep: 0.20
+  coverage: 0.20
+  data_completeness: 0.20
+bootstrap:
+  replicates: 2000       # B
+  cluster: persona
+  ci: percentile95
+permutation:
+  replicates: 10000
+cost_cap_usd: 30         # per run

@@ -1,0 +1,27 @@
+# Model pins — single source of truth (TECHSPEC §2/§3.2).
+# Versions below are best-known snapshots; RE-PIN against OpenRouter GET /models
+# on the day OPENROUTER_API_KEY is provisioned (Day 0 prerequisite P1), then never
+# change mid-project. Every trial row records the version it actually ran against.
+bulk:
+  - id: gpt4o-mini
+    openrouter_id: openai/gpt-4o-mini
+    version: "gpt-4o-mini-2024-07-18"
+    json_mode: true
+    seed_supported: true
+  - id: gemini-flash
+    openrouter_id: google/gemini-flash-1.5
+    version: "gemini-1.5-flash-002"
+    json_mode: true
+    seed_supported: true     # verify Day-3 spike; see Q2 in PRD §24
+  - id: claude-haiku
+    openrouter_id: anthropic/claude-3-5-haiku
+    version: "claude-3-5-haiku-20241022"
+    json_mode: true
+    seed_supported: false    # seed recorded anyway; CI absorbs variance
+flagship:
+  - id: gpt4o
+    openrouter_id: openai/gpt-4o
+    version: "gpt-4o-2024-11-20"
+  - id: gemini-pro
+    openrouter_id: google/gemini-1.5-pro
+    version: "gemini-1.5-pro-002"
