@@ -44,6 +44,9 @@ PRICING_USD_PER_MTOK: dict[str, tuple[float, float]] = {
 # so wall-clock impact is minimal for the sequential trial loop.
 MIN_REQUEST_INTERVAL_S: Final = 3.2
 
+# Wall-clock ceiling per single completion attempt (see wait_for in chat()).
+PER_ATTEMPT_CAP_S: Final = 75.0
+
 
 def estimate_cost_usd(model_id: str, prompt_tokens: int, completion_tokens: int) -> float:
     pin, pout = PRICING_USD_PER_MTOK.get(model_id, (1.0, 1.0))
@@ -181,7 +184,14 @@ class OpenRouterClient:
                 async with self._semaphore:
                     await self._pace()
                     t0 = time.monotonic()
-                    resp = await self._client.post(OPENROUTER_URL, json=payload, headers=headers)
+                    # Hard wall-clock cap: a live-fire stall (2026-08-22, nemotron
+                    # block) showed a request can hang PAST httpx's read/connect
+                    # timeouts — wait_for guarantees the attempt terminates so the
+                    # run always makes forward progress.
+                    resp = await asyncio.wait_for(
+                        self._client.post(OPENROUTER_URL, json=payload, headers=headers),
+                        timeout=PER_ATTEMPT_CAP_S,
+                    )
                     latency_ms = int((time.monotonic() - t0) * 1000)
                 if resp.status_code >= 500:
                     raise ProviderError(f"provider 5xx: {resp.status_code}")
@@ -214,8 +224,8 @@ class OpenRouterClient:
                     latency_ms=latency_ms,
                     model_version=entry.version,
                 )
-            except (httpx.TransportError, httpx.TimeoutException, ProviderError,
-                    KeyError, ValueError) as exc:
+            except (httpx.TransportError, httpx.TimeoutException, TimeoutError,
+                    ProviderError, KeyError, ValueError) as exc:
                 last_exc = exc
                 if isinstance(exc, ProviderError) and "provider 4" in str(exc):
                     break  # non-retryable
