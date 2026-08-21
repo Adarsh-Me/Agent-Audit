@@ -1,0 +1,96 @@
+{
+  "_meta": {
+    "purpose": "Curated fix proposals for the demo store's 10 starved listings (human-gated: nothing applies without approval). sku_023 afters match APPFLOW §F4/F5 verbatim. Uploads instead get template proposals with [seller to confirm] markers — never fabricated specs.",
+    "targets": ["sku_005", "sku_006", "sku_008", "sku_016", "sku_018", "sku_023", "sku_026", "sku_028", "sku_035", "sku_036"]
+  },
+  "sku_023": {
+    "title": "TrailBuddy Daypack 22L — water-resistant, laptop-sleeve, 980g",
+    "description": "Water-resistant 22L daypack with padded 15-inch laptop sleeve; 980g; breathable back panel; bottle pocket.",
+    "structured_data": {
+      "jsonld_present": true,
+      "fields_present": ["name", "price", "availability", "image", "brand"],
+      "price_fresh": true
+    }
+  },
+  "sku_005": {
+    "title": "QuickSip 1L Everyday Water Bottle — BPA-free, flip-cap",
+    "description": "1L everyday water bottle; BPA-free plastic; leak-resistant flip cap; fits bike cages and bag pockets.",
+    "structured_data": {
+      "jsonld_present": true,
+      "fields_present": ["name", "price", "availability", "image", "brand"],
+      "price_fresh": true
+    }
+  },
+  "sku_006": {
+    "title": "SteelCore 750ml Stainless Bottle — rust-resistant, screw lid",
+    "description": "750ml stainless steel bottle; rust-resistant interior; screw lid with carry loop; hand-wash recommended.",
+    "structured_data": {
+      "jsonld_present": true,
+      "fields_present": ["name", "price", "availability", "image", "brand"],
+      "price_fresh": true
+    }
+  },
+  "sku_008": {
+    "title": "ThermoKeep 500ml Insulated Bottle — 12h hot / 24h cold",
+    "description": "500ml vacuum-insulated flask keeps drinks hot for 12 hours and cold for 24; 18/8 steel; leak-proof lid.",
+    "structured_data": {
+      "jsonld_present": true,
+      "fields_present": ["name", "price", "availability", "image", "brand"],
+      "price_fresh": true
+    }
+  },
+  "sku_016": {
+    "title": "AeroPod 35 Wireless Headphones — 35h battery, fast charge",
+    "description": "Wireless over-ear headphones; 35-hour battery with USB-C fast charge; cushioned earcups; built-in mic for calls.",
+    "structured_data": {
+      "jsonld_present": true,
+      "fields_present": ["name", "price", "availability", "image", "brand"],
+      "price_fresh": true
+    }
+  },
+  "sku_018": {
+    "title": "DuoBuds Pro TWS Earbuds — 28h case, IPX5",
+    "description": "True wireless earbuds with 28-hour total battery via charging case; IPX5 sweat resistance; touch controls.",
+    "structured_data": {
+      "jsonld_present": true,
+      "fields_present": ["name", "price", "availability", "image", "brand"],
+      "price_fresh": true
+    }
+  },
+  "sku_026": {
+    "title": "CarryEasy 25L Backpack — 15-inch laptop sleeve, rain flap",
+    "description": "25L everyday backpack with padded 15-inch laptop sleeve; water-repellent rain flap; front organiser pocket.",
+    "structured_data": {
+      "jsonld_present": true,
+      "fields_present": ["name", "price", "availability", "image", "brand"],
+      "price_fresh": true
+    }
+  },
+  "sku_028": {
+    "title": "TrailLoad 40L Rucksack — hip belt, rain cover included",
+    "description": "40L trekking rucksack with padded hip belt and stowed rain cover; multiple compression straps; 1.1kg.",
+    "structured_data": {
+      "jsonld_present": true,
+      "fields_present": ["name", "price", "availability", "image", "brand"],
+      "price_fresh": true
+    }
+  },
+  "sku_035": {
+    "title": "FitStart Home Fitness Kit — bands, rope, grip pads",
+    "description": "Starter home fitness kit: resistance band set, adjustable skipping rope, and non-slip grip pads; workout guide included.",
+    "structured_data": {
+      "jsonld_present": true,
+      "fields_present": ["name", "price", "availability", "image", "brand"],
+      "price_fresh": true
+    }
+  },
+  "sku_036": {
+    "title": "PowerSet 20kg Adjustable Workout Set — dumbbells + bands",
+    "description": "Adjustable workout set up to 20kg per side: dial dumbbells, stackable resistance bands, and storage trays.",
+    "structured_data": {
+      "jsonld_present": true,
+      "fields_present": ["name", "price", "availability", "image", "brand"],
+      "price_fresh": true
+    }
+  }
+}

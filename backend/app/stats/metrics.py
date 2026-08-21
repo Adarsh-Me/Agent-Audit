@@ -133,13 +133,16 @@ def m2_position(c2_trials: list[dict], n_catalog: int,
             per_slot[s - 1] += 1 / n
     # Null hypothesis: no position preference → each trial's choice lands in a uniformly
     # random presented slot. ("Permute chosen products' slot assignments", TECHSPEC §8.2.)
-    rng = random.Random(seed)
-    extreme = 0
-    for _ in range(perms):
-        hits = sum(1 for _ in slots if rng.randrange(n_catalog) < 3)
-        if hits / n >= capture:
-            extreme += 1
-    p_value = extreme / perms
+    if perms and perms > 0:
+        rng = random.Random(seed)
+        extreme = 0
+        for _ in range(perms):
+            hits = sum(1 for _ in slots if rng.randrange(n_catalog) < 3)
+            if hits / n >= capture:
+                extreme += 1
+        p_value = extreme / perms
+    else:
+        p_value = None  # skipped (bootstrap resamples)
     lift = capture / chance if chance else 0.0
     return {"top3_capture": capture, "lift": lift, "p_value": p_value, "per_slot": per_slot}
 

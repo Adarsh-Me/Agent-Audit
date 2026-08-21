@@ -26,6 +26,7 @@ class AuditRequest(BaseModel):
     catalog_source: str = Field(pattern="^(demo|upload|mirror)$")
     catalog_id: str | None = None
     gmv_inr: int | None = None
+    parent_run_id: str | None = None  # present → this is a verified re-run
 
 
 def _resolve_catalog_id(session: AsyncSession, req: AuditRequest) -> str:
@@ -45,12 +46,46 @@ async def create_audit(req: AuditRequest, background: BackgroundTasks,
                        session: AsyncSession = Depends(get_session)) -> dict:
     if req.gmv_inr is not None and req.gmv_inr < GMV_MIN_INR:
         raise AppError("E110", f"enter a GMV above ₹{GMV_MIN_INR:,}")
-    catalog_id = _resolve_catalog_id(session, req)
+
+    run_type = "audit"
+    if req.parent_run_id:
+        # Verified re-run gate (E401): every remediation row must be reviewed first.
+        parent = await session.get(Run, req.parent_run_id)
+        if parent is None:
+            raise AppError("E601", "parent run not found", status_code=404)
+        from sqlalchemy import select as _sel
+
+        from app.db.models import Remediation
+        pending_n = (await session.execute(
+            select(func.count()).select_from(Remediation)
+            .where(Remediation.run_id == req.parent_run_id,
+                   Remediation.status == "pending")
+        )).scalar()
+        if pending_n:
+            raise AppError("E401", f"{pending_n} remediation(s) pending — review before "
+                                   "re-running", status_code=409)
+        run_type = "rerun"
+        catalog_id = req.catalog_id
+        if not catalog_id:
+            # latest mirror of the parent run's catalog
+            from app.db.models import Catalog
+            catalog_id = session.scalar(
+                _sel(Catalog.id)
+                .where(Catalog.source == "mirror",
+                       Catalog.parent_catalog_id == parent.catalog_id)
+                .order_by(Catalog.version.desc())
+            )
+        if not catalog_id:
+            raise AppError("E401", "no mirror catalog found — approve fixes and build the "
+                                   "mirror before re-running", status_code=409)
+    else:
+        catalog_id = _resolve_catalog_id(session, req)
 
     run = Run(
         id=str(uuidlib.uuid4()),
         catalog_id=catalog_id,
-        type="audit",
+        parent_run_id=req.parent_run_id,
+        type=run_type,
         status="queued",
         models={}, seeds={},
         trials_total=640,
