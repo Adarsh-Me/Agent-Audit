@@ -1,0 +1,20 @@
+name: nightly
+on:
+  schedule:
+    - cron: "0 21 * * *"  # 02:30 IST
+  workflow_dispatch:
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: pip install -r backend/requirements.txt
+      - name: Unit + integration tests
+        run: cd backend && python -m pytest -q
+      - name: Validation suite (V1–V6 planted bias)
+        run: cd backend && python -m pytest tests/validation -q

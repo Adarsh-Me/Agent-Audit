@@ -33,7 +33,8 @@ async def _latest_catalog(session: AsyncSession) -> Catalog:
 
 
 @router.get("/catalog")
-async def get_catalog(session: AsyncSession = Depends(get_session)) -> dict:
+async def get_catalog(order: str = "sku",
+                      session: AsyncSession = Depends(get_session)) -> dict:
     catalog = await _latest_catalog(session)
     rows = (
         (await session.execute(
@@ -42,12 +43,21 @@ async def get_catalog(session: AsyncSession = Depends(get_session)) -> dict:
         .scalars()
         .all()
     )
+    items = [_canonical(r) for r in rows]
+    if order == "baseline":
+        # demo fixture block order ([rich, medium, starved, medium]×10) drives the F4
+        # heat-map axis; unknown skus (uploads/mirrors) keep sku-sorted tail order
+        from app.engine.runner import load_baseline_order_fixture
+
+        base = [s for s in load_baseline_order_fixture()]
+        rank = {sku: i for i, sku in enumerate(base)}
+        items.sort(key=lambda p: rank.get(p["id"], len(base)))
     return {
         "catalog_id": catalog.id,
         "source": catalog.source,
         "version": catalog.version,
-        "count": len(rows),
-        "products": [_canonical(r) for r in rows],
+        "count": len(items),
+        "products": items,
     }
 
 
