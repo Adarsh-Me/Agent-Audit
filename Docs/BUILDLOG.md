@@ -56,3 +56,29 @@ This is a deliverable, not a diary — it demonstrates engineering process to ju
 - **Tomorrow's risk:** legibility checklist scoring + revenue model inputs.
 
 > Day 5 (first live 640-trial run) is intentionally deferred until OPENROUTER_API_KEY exists — all mocked paths are proven.
+
+---
+
+## Day 7+8 — Legibility, score wiring, revenue, SSE (Aug 21)
+
+- **Shipped:** legibility composite (structured checklist 0.4 + title 0.3 + description 0.3) with deterministic heuristic fallback behind an LLM-judge slot; C-4 tier assignment for uploads; data_completeness now feeds the real mean composite into score computation; `POST /api/legibility/{catalog_id}`; `GET /api/report/{run_id}`; revenue model (RaR = GMV × s_agent × F_task, Recoverable = GMV × s_agent × ΔF) with per-input source labels and CI bounds from Wilson/bootstrap; SSE event bus + `/api/stream/{run_id}` with 15s heartbeat.
+- **Broke:** first SSE generator fell into the heartbeat loop for finished runs — infinite stream, hung the test suite. Terminal events now return immediately.
+- **Spent:** $0.
+- **Decided:** heuristic quality scorer is documented as fallback, never silently mixed with LLM mode; UI will label which produced the numbers.
+- **Tomorrow's risk:** remediation loop gating correctness.
+
+## Day 9+10 — Remediation loop + delta (Aug 21)
+
+- **Shipped:** fix proposals — curated afters for the demo's 10 starved SKUs (sku_023 matches APPFLOW verbatim), honest `[seller to confirm]` templates for uploads; generate/list/review/mirror endpoints; mirror catalog v=n+1 with SC-2 parentage; E401 rerun gate (no mirror while rows pending); verified re-run endpoint flow; delta endpoint (per-SKU share changes, ΔF with paired bootstrap CI B=800, Recoverable at slider, verdict string); manifest recorder (`scripts/record_manifest.py` → demo/manifest.json) + G12 `make demo-check` verifier.
+- **Broke:** m2_position crashed on perms=0 inside bootstrap resamples — added explicit skip returning p_value=None.
+- **Spent:** $0.
+- **Decided:** identical-prompt reruns legitimately serve from cache ($0 marginal); a remediated rerun changes every listing line so it re-bills by construction (SC-3) — integration test asserts >600 fresh of 640.
+- **Tomorrow's risk:** frontend fidelity to APPFLOW copy.
+
+## Day 13 — Razorpay + agent checkout + MCP (Aug 21)
+
+- **Shipped:** Razorpay test-mode client (payment links, idempotency keys, injectable transport); payments endpoints — idempotent link creation keyed "agentaudit:{run}:{sku}", status polling for the F8 badge; HMAC-SHA256 webhook verification with E501 on mismatch and webhook_events dedupe (SC-1 entity_key); payment_link.captured flips Payment.status → badge closes; `scripts/agent_checkout.py` (prefers mirror catalog, explainable value pick); stdio MCP server (zero-dep Node) exposing audit_status / get_report / create_payment_link.
+- **Broke:** nothing — HMAC math tested against hand-computed digests before any live call.
+- **Spent:** $0 (all Razorpay traffic mocked).
+- **Decided:** secrets stay server-side; frontend/MCP/agents only ever see short_url.
+- **Tomorrow's risk:** e2e smoke + final polish.
