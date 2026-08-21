@@ -13,6 +13,7 @@ from app.errors import AppError, error_payload
 from app.routers import audit as audit_router
 from app.routers import catalog as catalog_router
 from app.routers import delta as delta_router
+from app.routers import payments as payments_router
 from app.routers import remediations as remediations_router
 from app.routers import report as report_router
 from app.routers import stream as stream_router
@@ -71,6 +72,7 @@ app.include_router(report_router.router)
 app.include_router(stream_router.router)
 app.include_router(remediations_router.router)
 app.include_router(delta_router.router)
+app.include_router(payments_router.router)
 
 
 @app.get("/healthz")
