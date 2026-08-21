@@ -24,8 +24,10 @@ async def check() -> bool:
 
     ok = True
     async with get_sessionmaker()() as session:
-        for label, block in (("original_run", manifest["original_run"]),
-                             ("rerun", manifest.get("rerun"))):
+        for label, block, metrics_block in (
+            ("original_run", manifest["original_run"], manifest.get("metrics", {})),
+            ("rerun", manifest.get("rerun"), (manifest.get("rerun") or {}).get("metrics", {})),
+        ):
             if not block:
                 continue
             run = await session.get(Run, block["run_id"])
@@ -37,7 +39,7 @@ async def check() -> bool:
                 m.key: m.value for m in (await session.execute(
                     select(Metric).where(Metric.run_id == block["run_id"]))).scalars()
             }
-            for key, recorded in block["metrics"].items():
+            for key, recorded in metrics_block.items():
                 db_v = db_metrics.get(key)
                 if db_v is None:
                     print(f"[FAIL] {label}.{key}: metric missing in DB")

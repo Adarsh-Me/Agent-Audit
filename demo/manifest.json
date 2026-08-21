@@ -1,0 +1,148 @@
+{
+  "recorded_at": "2026-08-21T18:35:05.461749+00:00",
+  "git_sha": "247591e8d287",
+  "original_run": {
+    "run_id": "0440e896-7c1d-4bd2-baa5-57598c461ae8",
+    "status": "done",
+    "trials": 640,
+    "cache_hits": 0,
+    "cost_usd": 0.0,
+    "models": {
+      "bulk": [
+        {
+          "id": "gpt4o-mini",
+          "openrouter_id": "openai/gpt-4o-mini",
+          "version": "gpt-4o-mini-2024-07-18",
+          "json_mode": true,
+          "seed_supported": true
+        },
+        {
+          "id": "gemini-flash",
+          "openrouter_id": "google/gemini-flash-1.5",
+          "version": "gemini-1.5-flash-002",
+          "json_mode": true,
+          "seed_supported": true
+        },
+        {
+          "id": "claude-haiku",
+          "openrouter_id": "anthropic/claude-3-5-haiku",
+          "version": "claude-3-5-haiku-20241022",
+          "json_mode": true,
+          "seed_supported": false
+        }
+      ],
+      "flagship": [
+        {
+          "id": "gpt4o",
+          "openrouter_id": "openai/gpt-4o",
+          "version": "gpt-4o-2024-11-20",
+          "json_mode": true,
+          "seed_supported": false
+        },
+        {
+          "id": "gemini-pro",
+          "openrouter_id": "google/gemini-1.5-pro",
+          "version": "gemini-1.5-pro-002",
+          "json_mode": true,
+          "seed_supported": false
+        }
+      ]
+    },
+    "seed_spec": {
+      "spec_version": 1,
+      "trial": "int(sha256('trial|{persona}|{condition}')[:8],16) % 2^31",
+      "shuffle": "int(sha256('shuffle|{condition}')[:8],16) % 2^31"
+    },
+    "prompt_hash_sample": "694930e3f15d657eeb0c14afa24e9b51e331684dcacce3d4fa93c80cd54be782",
+    "prompt_hash_sample_sha256": "0123154a12ffb9e3"
+  },
+  "metrics": {
+    "coverage.f_task": {
+      "value": 0.075,
+      "ci_low": 0.05205327042127548,
+      "ci_high": 0.10692140427232745
+    },
+    "framing.mean_delta": {
+      "value": 0.125,
+      "ci_low": 0.06249999999999999,
+      "ci_high": 0.21250000000000002
+    },
+    "hhi_norm": {
+      "value": 0.25184080308734047,
+      "ci_low": 0.23412091100960644,
+      "ci_high": 0.3282351732768279
+    },
+    "position.lift": {
+      "value": 2.4691358024691357,
+      "ci_low": null,
+      "ci_high": null
+    },
+    "position.p_value": {
+      "value": 0.0,
+      "ci_low": null,
+      "ci_high": null
+    },
+    "position.top3_capture": {
+      "value": 0.18518518518518517,
+      "ci_low": 0.09255050505050505,
+      "ci_high": 0.2777777777777778
+    },
+    "score": {
+      "value": 66.11750492590751,
+      "ci_low": 59.437865339448734,
+      "ci_high": 72.03309449772993
+    },
+    "stability.mean": {
+      "value": 1.0000000000000002,
+      "ci_low": 0.9999999999999997,
+      "ci_high": 1.0000000000000002
+    }
+  },
+  "rerun": {
+    "run_id": "ca5d7fb9-c6d5-4ef9-89bd-da576297504e",
+    "metrics": {
+      "coverage.f_task": {
+        "value": 0.075,
+        "ci_low": 0.05205327042127548,
+        "ci_high": 0.10692140427232745
+      },
+      "framing.mean_delta": {
+        "value": 0.125,
+        "ci_low": 0.06249999999999999,
+        "ci_high": 0.21250000000000002
+      },
+      "hhi_norm": {
+        "value": 0.25184080308734047,
+        "ci_low": 0.23412091100960644,
+        "ci_high": 0.3282351732768279
+      },
+      "position.lift": {
+        "value": 2.4691358024691357,
+        "ci_low": null,
+        "ci_high": null
+      },
+      "position.p_value": {
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null
+      },
+      "position.top3_capture": {
+        "value": 0.18518518518518517,
+        "ci_low": 0.09255050505050505,
+        "ci_high": 0.2777777777777778
+      },
+      "score": {
+        "value": 66.11750492590751,
+        "ci_low": 59.437865339448734,
+        "ci_high": 72.03309449772993
+      },
+      "stability.mean": {
+        "value": 1.0000000000000002,
+        "ci_low": 0.9999999999999997,
+        "ci_high": 1.0000000000000002
+      }
+    }
+  },
+  "note": "All numbers regenerated deterministically from committed seeds and a pinned model list; response cache keyed on prompt_hash + model_version. RECORDED WITH A SCRIPTED DETERMINISTIC PROVIDER \u2014 replace with a live OpenRouter run before citing externally.",
+  "provider": "mock-deterministic"
+}
