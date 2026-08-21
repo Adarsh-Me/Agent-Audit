@@ -61,8 +61,12 @@ async def create_audit(req: AuditRequest, background: BackgroundTasks,
 
     async def job() -> None:
         from app.engine.runner import execute_run
+        from app.events import bus
 
-        await execute_run(get_sessionmaker(), RunnerDeps(), catalog_id)
+        async def cb(event: dict) -> None:
+            await bus.publish(run.id, event)
+
+        await execute_run(get_sessionmaker(), RunnerDeps(), catalog_id, progress=cb)
 
     background.add_task(job)
     return {"audit_id": run.id, "status": "queued", "trials_total": 640}
@@ -119,8 +123,9 @@ async def compute_and_store_metrics(session: AsyncSession, run_id: str) -> dict:
     ]
     from app.stats.metrics import compute_all
     from app.stats.bootstrap import cluster_bootstrap
+    from app.stats.legibility import mean_completeness
 
-    completeness = 0.0  # replaced by legibility composite on Day 7
+    completeness = await mean_completeness(session, run.catalog_id)
     point = compute_all(trials, n_catalog or 40, completeness=completeness, perms=10000)
     boot = cluster_bootstrap(trials, n_catalog or 40, completeness=completeness)
 
