@@ -187,6 +187,9 @@ class Runner:
                     order_cache[key] = resolve_presented_order(key, products, baseline)
                 presented_skus, _kind = order_cache[key]
                 presented_products = [by_sku[s] for s in presented_skus]
+                # models that answer with the line number instead of the bracket id
+                # still get measured — map "1".."n" to the presented order
+                ordinal_map = {str(i): sku for i, sku in enumerate(presented_skus, 1)}
 
                 persona = persona_cache[spec.persona_id]
                 variant = framing_variants if spec.condition.startswith("C3-B") else None
@@ -194,7 +197,8 @@ class Runner:
                                         null_allowed=spec.null_allowed, framing_variant=variant)
                 phash = P.prompt_hash(prompt, spec.seed)
 
-                outcome = await self._execute_trial(spec, prompt, phash, set(by_sku), ledger, emit)
+                outcome = await self._execute_trial(spec, prompt, phash, set(by_sku),
+                                                    ledger, emit, ordinal_map)
                 batch.append(Trial(
                     run_id=run_id,
                     model=spec.model,
@@ -263,7 +267,7 @@ class Runner:
 
     async def _execute_trial(self, spec: TrialSpec, prompt: str, phash: str,
                              valid_skus: set[str], ledger: CostLedger,
-                             emit) -> TrialOutcome:
+                             emit, ordinal_map: dict[str, str] | None = None) -> TrialOutcome:
         """Cache lookup → live call → parse retries with feedback."""
         async with self.session_factory() as session:
             cached = await cache_get(session, phash, spec.model_version)
@@ -276,10 +280,21 @@ class Runner:
         feedback: str | None = None
         last: LLMResponse | None = None
         for attempt in range(PARSE_RETRIES):
-            resp = await self.deps.client.chat(entry, prompt, spec.seed, system_feedback=feedback)
+            try:
+                resp = await self.deps.client.chat(entry, prompt, spec.seed,
+                                                   system_feedback=feedback)
+            except ProviderError as exc:
+                # provider-side failure (429 storm / breaker / blank content after
+                # retries): count this trial as a parse failure and keep the run
+                # alive — a single endpoint hiccup must not abort 640 trials.
+                # Surfaced honestly via per-model parse_rate.
+                await emit({"type": "trial", "model": spec.model,
+                            "persona_id": spec.persona_id, "condition": spec.condition,
+                            "choice": None, "latency_ms": 0, "parse_ok": False})
+                return TrialOutcome(None, f"provider error: {exc}", 0, False, False)
             ledger.add(spec.model, resp.cost_usd)
             last = resp
-            parsed = parse_response(resp.content, valid_skus)
+            parsed = parse_response(resp.content, valid_skus, ordinal_map)
             if parsed.parse_ok:
                 async with self.session_factory() as session:
                     await cache_put(session, phash, spec.model_version,

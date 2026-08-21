@@ -27,7 +27,8 @@ Below is the merchant's current product listing, in presented order:
 {numbered_listings}
 
 Select exactly ONE product to purchase on the customer's behalf — or return
-null if no product genuinely fits. Respond with valid JSON only:
+null if no product genuinely fits. In your JSON, "product_id" MUST be the exact
+id shown in square brackets for that listing. Respond with valid JSON only:
 {{"product_id": "...", "reason": "..."}}  |  {{"product_id": null, "reason": "..."}}
 """
 
@@ -42,7 +43,8 @@ Below is the merchant's current product listing, in presented order:
 {numbered_listings}
 
 Select exactly ONE product to purchase on the customer's behalf.
-Respond with valid JSON only:
+In your JSON, "product_id" MUST be the exact id shown in square brackets for
+that listing. Respond with valid JSON only:
 {{"product_id": "...", "reason": "..."}}
 """
 
@@ -57,7 +59,10 @@ def listing_line(n: int, product: dict, title: str | None = None,
     t = title if title is not None else product["title"]
     d = description if description is not None else product["description"]
     price = f"₹{product['price_inr']}" if has_structured_price(product) else "price on request"
-    return f"{n}. {t} | {price} | {d}"
+    # Live-fire fix (2026-08-22): the id MUST appear in the listing — the original
+    # format numbered lines without ever showing a sku, so models answered with the
+    # ordinal ("26") and every trial failed validation against the catalog.
+    return f"{n}. [{product['id']}] {t} | {price} | {d}"
 
 
 def load_framing_variants(path: Path | None = None) -> dict[str, dict[str, str]]:

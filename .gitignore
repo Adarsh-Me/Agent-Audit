@@ -30,3 +30,6 @@ Thumbs.db
 
 # Logs
 *.log
+
+# live-run server logs
+uvicorn_live*.log

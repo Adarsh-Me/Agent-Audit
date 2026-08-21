@@ -164,6 +164,11 @@ class OpenRouterClient:
             "model": entry.openrouter_id,
             "messages": messages,
             "temperature": temperature,
+            # reasoning-style endpoints otherwise burn minutes (and their whole
+            # output budget) on chain-of-thought before the JSON: measured
+            # 11.8s/452tok -> 2.4s/52tok on a catalog-size prompt (2026-08-22)
+            "max_tokens": 3500,
+            "reasoning": {"effort": "low", "exclude": True},
         }
         if entry.json_mode:
             payload["response_format"] = {"type": "json_object"}
@@ -187,7 +192,15 @@ class OpenRouterClient:
                     breaker.record_failure()
                     raise ProviderError(f"provider {resp.status_code}: {resp.text[:200]}")
                 data = resp.json()
-                content = data["choices"][0]["message"]["content"]
+                try:
+                    message = data["choices"][0]["message"]
+                except (KeyError, IndexError, TypeError) as exc:
+                    raise ProviderError("malformed completion payload") from exc
+                content = message.get("content")
+                if not isinstance(content, str) or not content.strip():
+                    # reasoning-style models intermittently return content=null with
+                    # everything in `reasoning` — retryable, not a crash
+                    raise ProviderError("empty content (null/blank message)")
                 usage = data.get("usage") or {}
                 ptok = int(usage.get("prompt_tokens") or 0)
                 ctok = int(usage.get("completion_tokens") or 0)
