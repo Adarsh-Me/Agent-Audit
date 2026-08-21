@@ -1,0 +1,219 @@
+"""Audit endpoints — POST /api/audit · GET /api/audit/{id} · GET …/metrics.
+
+The frontend never computes a headline number: every figure here carries its CI
+(persona-cluster bootstrap B=2000; Wilson for F_task).
+"""
+from __future__ import annotations
+
+import uuid as uuidlib
+from datetime import datetime, timezone
+
+from fastapi import APIRouter, BackgroundTasks, Depends
+from pydantic import BaseModel, Field
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.constants import GMV_MIN_INR
+from app.db.models import Catalog, Metric, Product, Run, Trial
+from app.db.session import get_session, get_sessionmaker
+from app.engine.runner import RunnerDeps
+from app.errors import AppError
+
+router = APIRouter()
+
+
+class AuditRequest(BaseModel):
+    catalog_source: str = Field(pattern="^(demo|upload|mirror)$")
+    catalog_id: str | None = None
+    gmv_inr: int | None = None
+
+
+def _resolve_catalog_id(session: AsyncSession, req: AuditRequest) -> str:
+    if req.catalog_id:
+        return req.catalog_id
+    # default: latest demo catalog
+    cid = session.scalar(
+        select(Catalog.id).where(Catalog.source == "demo").order_by(Catalog.created_at.desc())
+    )
+    if cid is None:
+        raise AppError("E601", "no catalog available — run make seed-demo", status_code=404)
+    return cid
+
+
+@router.post("/api/audit", status_code=202)
+async def create_audit(req: AuditRequest, background: BackgroundTasks,
+                       session: AsyncSession = Depends(get_session)) -> dict:
+    if req.gmv_inr is not None and req.gmv_inr < GMV_MIN_INR:
+        raise AppError("E110", f"enter a GMV above ₹{GMV_MIN_INR:,}")
+    catalog_id = _resolve_catalog_id(session, req)
+
+    run = Run(
+        id=str(uuidlib.uuid4()),
+        catalog_id=catalog_id,
+        type="audit",
+        status="queued",
+        models={}, seeds={},
+        trials_total=640,
+        started_at=datetime.now(timezone.utc),
+    )
+    session.add(run)
+    await session.commit()
+
+    async def job() -> None:
+        from app.engine.runner import execute_run
+
+        await execute_run(get_sessionmaker(), RunnerDeps(), catalog_id)
+
+    background.add_task(job)
+    return {"audit_id": run.id, "status": "queued", "trials_total": 640}
+
+
+@router.get("/api/audit/{run_id}")
+async def get_audit(run_id: str, session: AsyncSession = Depends(get_session)) -> dict:
+    run = await session.get(Run, run_id)
+    if run is None:
+        raise AppError("E601", "run not found", status_code=404)
+    done = (await session.execute(
+        select(func.count()).select_from(Trial).where(Trial.run_id == run_id)
+    )).scalar()
+    eta_s = max(0, int((run.trials_total or 640) - done)) * 0.35 if run.status == "running" else 0
+    return {
+        "run_id": run.id,
+        "status": run.status,
+        "trials_done": int(done),
+        "trials_total": run.trials_total,
+        "cost_usd": round(run.cost_usd or 0.0, 4),
+        "eta_s": eta_s,
+        "parent_run_id": run.parent_run_id,
+        "type": run.type,
+    }
+
+
+def _ci(v):  # {"value","ci_low","ci_high"} helper
+    return {"value": v[0], "ci_low": v[1], "ci_high": v[2]} if isinstance(v, tuple) else v
+
+
+async def compute_and_store_metrics(session: AsyncSession, run_id: str) -> dict:
+    """Compute all metrics for a completed run; persist to `metrics`; return §3.5 payload."""
+    run = await session.get(Run, run_id)
+    if run is None:
+        raise AppError("E601", "run not found", status_code=404)
+
+    n_catalog = (await session.execute(
+        select(func.count()).select_from(Product).where(Product.catalog_id == run.catalog_id)
+    )).scalar()
+    rows = (
+        (await session.execute(select(Trial).where(Trial.run_id == run_id)))
+        .scalars()
+        .all()
+    )
+    trials = [
+        {
+            "model": t.model, "model_version": t.model_version, "tier": t.tier,
+            "persona_id": t.persona_id, "condition": t.condition,
+            "presented_order": t.presented_order, "choice": t.choice,
+            "null_allowed": t.null_allowed, "parse_ok": t.parse_ok,
+            "from_cache": t.from_cache,
+        }
+        for t in rows
+    ]
+    from app.stats.metrics import compute_all
+    from app.stats.bootstrap import cluster_bootstrap
+
+    completeness = 0.0  # replaced by legibility composite on Day 7
+    point = compute_all(trials, n_catalog or 40, completeness=completeness, perms=10000)
+    boot = cluster_bootstrap(trials, n_catalog or 40, completeness=completeness)
+
+    payload = {
+        "run_id": run_id,
+        "status": run.status,
+        "partial": run.status == "partial",
+        "trials": {
+            "total": len(trials),
+            "parse_ok": sum(1 for t in trials if t["parse_ok"]),
+            "null_allowed": sum(1 for t in trials if t["null_allowed"]),
+            "forced": sum(1 for t in trials if not t["null_allowed"]),
+        },
+        "hhi_norm": {**_ci((point["hhi_norm"], *boot.get("hhi_norm", (point["hhi_norm"],) * 2))),
+                     "per_model": point["hhi_norm_per_model"]},
+        "position": {
+            "top3_capture": _ci((point["position"]["top3_capture"],
+                                 *boot.get("position.top3_capture",
+                                           (point["position"]["top3_capture"],) * 2))),
+            "lift": point["position"]["lift"],
+            "p_value": point["position"]["p_value"],
+            "per_slot": point["position"]["per_slot"],
+        },
+        "framing": {
+            "mean_delta": _ci((point["framing"]["mean_delta"],
+                               *boot.get("framing.mean_delta",
+                                         (point["framing"]["mean_delta"],) * 2))),
+            "per_product": point["framing"]["per_product"],
+        },
+        "coverage": {
+            "f_task": {"value": point["coverage"]["f_task"],
+                       "ci_low": point["coverage"]["ci_low"],
+                       "ci_high": point["coverage"]["ci_high"]},
+            "nulls_by_persona": point["coverage"]["nulls_by_persona"],
+        },
+        "stability": {
+            "matrix": point["stability"]["matrix"],
+            "mean": _ci((point["stability"]["mean"], *boot.get("stability.mean",
+                       (point["stability"]["mean"],) * 2))),
+            "band": point["stability"]["band"],
+        },
+        "invisible_skus": [
+            {"sku": sku.replace("share:", ""),
+             "share": _ci(boot[sku])}
+            for sku in sorted(k for k in boot if k.startswith("share:"))
+            if boot[sku][1] < 1.0 / (n_catalog or 40)
+        ],
+        "score": {**_ci((point["score"], *boot.get("score", (point["score"],) * 2))),
+                  "components": point["components"]},
+        "models_meta": [
+            {"id": m, "version": None, "parse_failure_rate": r}
+            for m, r in sorted(point["parse_rate"].items())
+        ],
+        "cost_usd": round(run.cost_usd or 0.0, 4),
+        "manifest_ref": None,
+    }
+
+    # persist headline rows (SCHEMA §2.4 namespace)
+    headlines = {
+        "hhi_norm": (payload["hhi_norm"]["value"], payload["hhi_norm"]["ci_low"], payload["hhi_norm"]["ci_high"]),
+        "position.top3_capture": (payload["position"]["top3_capture"]["value"],
+                                  payload["position"]["top3_capture"]["ci_low"],
+                                  payload["position"]["top3_capture"]["ci_high"]),
+        "position.lift": (payload["position"]["lift"], None, None),
+        "position.p_value": (payload["position"]["p_value"], None, None),
+        "framing.mean_delta": (payload["framing"]["mean_delta"]["value"],
+                               payload["framing"]["mean_delta"]["ci_low"],
+                               payload["framing"]["mean_delta"]["ci_high"]),
+        "coverage.f_task": (payload["coverage"]["f_task"]["value"],
+                            payload["coverage"]["f_task"]["ci_low"],
+                            payload["coverage"]["f_task"]["ci_high"]),
+        "stability.mean": (payload["stability"]["mean"]["value"],
+                           payload["stability"]["mean"]["ci_low"],
+                           payload["stability"]["mean"]["ci_high"]),
+        "score": (payload["score"]["value"], payload["score"]["ci_low"], payload["score"]["ci_high"]),
+    }
+    for key, (v, lo, hi) in headlines.items():
+        existing = await session.scalar(
+            select(Metric).where(Metric.run_id == run_id, Metric.key == key)
+        )
+        if existing is None:
+            session.add(Metric(run_id=run_id, key=key, value=v, ci_low=lo, ci_high=hi))
+        else:
+            existing.value, existing.ci_low, existing.ci_high = v, lo, hi
+    await session.commit()
+    return payload
+
+
+@router.get("/api/audit/{run_id}/metrics")
+async def get_metrics(run_id: str, session: AsyncSession = Depends(get_session)) -> dict:
+    status = (await session.get(Run, run_id))
+    if status is None:
+        raise AppError("E601", "run not found", status_code=404)
+    if status.status in ("queued",):
+        return {"run_id": run_id, "status": status.status, "partial": False}
+    return await compute_and_store_metrics(session, run_id)

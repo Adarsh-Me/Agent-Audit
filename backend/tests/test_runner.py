@@ -27,8 +27,10 @@ class FakeClient:
     async def chat(self, entry, prompt: str, seed: int, system_feedback=None):
         self.calls += 1
         self.feedbacks_seen.append(system_feedback)
-        # deterministic pick from prompt hash + seed; nulls only when the prompt allows
-        null_allowed = "or return" in prompt  # forced prompts omit the null clause
+        # deterministic pick from prompt hash + seed; nulls only when the schema
+        # offers {"product_id": null} (forced prompts list only the sku variant).
+        # NOTE: do NOT sniff prose like "or return" — persona tasks (P20) contain it.
+        null_allowed = '{"product_id": null' in prompt
         h = hash((prompt[:64], seed))
         if null_allowed and h % 7 == 0:
             choice = None  # some nulls exist → coverage signal
@@ -120,6 +122,7 @@ async def test_rerun_unchanged_catalog_is_100pct_cached(db_env, registry):
 
     run1 = await runner.run_audit(catalog_id)
     calls_after_first = fake.calls
+    assert run1 is not None
     assert calls_after_first == 640
 
     events: list[dict] = []

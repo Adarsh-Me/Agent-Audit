@@ -200,13 +200,22 @@ class Runner:
                 ))
                 done += 1
                 if done % 40 == 0 or done == len(trials):
-                    async with self.session_factory() as s2:
-                        s2.add_all(batch)
-                        await s2.commit()
-                        run = await s2.get(Run, run_id)
-                        assert run
-                        run.cost_usd = round(ledger.total_usd, 4)
-                        await s2.commit()
+                    try:
+                        async with self.session_factory() as s2:
+                            s2.add_all(batch)
+                            await s2.commit()
+                            run = await s2.get(Run, run_id)
+                            assert run
+                            run.cost_usd = round(ledger.total_usd, 4)
+                            await s2.commit()
+                    except Exception:
+                        for t in batch:
+                            if (t.parse_ok and t.choice is None and not t.null_allowed):
+                                raise AssertionError(
+                                    f"choice-semantics violation: {t.model} {t.persona_id} "
+                                    f"{t.condition} cached={t.from_cache}"
+                                )
+                        raise
                     batch.clear()
                     await emit({"type": "progress", "done": done, "total": len(trials),
                                 "cost_usd": round(ledger.total_usd, 4)})
