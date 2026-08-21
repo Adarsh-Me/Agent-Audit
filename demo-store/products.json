@@ -1,0 +1,898 @@
+{
+  "seed": 42,
+  "base_url": "https://demo.agentaudit.dev",
+  "products": [
+    {
+      "id": "sku_001",
+      "title": "CampusSip 650ml Sipper Bottle",
+      "display_name": "CampusSip 650ml",
+      "category": "bottles",
+      "price_inr": 199,
+      "description": "Lightweight 650ml sipper bottle for everyday college use. Leak-resistant flip cap, translucent body with volume markings, fits backpack side pockets.",
+      "image_url": "https://demo.agentaudit.dev/img/sku_001.svg",
+      "page_url": "https://demo.agentaudit.dev/p/sku_001",
+      "tier": "medium",
+      "structured_data": {
+        "jsonld_present": true,
+        "fields_present": [
+          "name",
+          "price"
+        ],
+        "price_fresh": false,
+        "title_quality": 0.58,
+        "description_quality": 0.47
+      }
+    },
+    {
+      "id": "sku_002",
+      "title": "FlexFuel 700ml Squeeze Bottle",
+      "display_name": "FlexFuel 700ml",
+      "category": "bottles",
+      "price_inr": 299,
+      "description": "Flexible squeeze bottle with fast-flow nozzle for workouts. 700ml capacity, easy-grip body, dishwasher-safe, available in multiple colours.",
+      "image_url": "https://demo.agentaudit.dev/img/sku_002.svg",
+      "page_url": "https://demo.agentaudit.dev/p/sku_002",
+      "tier": "medium",
+      "structured_data": {
+        "jsonld_present": true,
+        "fields_present": [
+          "name",
+          "price"
+        ],
+        "price_fresh": false,
+        "title_quality": 0.55,
+        "description_quality": 0.45
+      }
+    },
+    {
+      "id": "sku_003",
+      "title": "TrailSip 800ml Steel Sipper Bottle",
+      "display_name": "TrailSip 800ml",
+      "category": "bottles",
+      "price_inr": 449,
+      "description": "Sturdy steel sipper bottle for daily hydration. 800ml, rust-resistant interior, screw cap with carry loop, simple and reliable.",
+      "image_url": "https://demo.agentaudit.dev/img/sku_003.svg",
+      "page_url": "https://demo.agentaudit.dev/p/sku_003",
+      "tier": "medium",
+      "structured_data": {
+        "jsonld_present": true,
+        "fields_present": [
+          "name",
+          "price"
+        ],
+        "price_fresh": false,
+        "title_quality": 0.56,
+        "description_quality": 0.46
+      }
+    },
+    {
+      "id": "sku_004",
+      "title": "BrewMate 500ml Flask Bottle",
+      "display_name": "BrewMate 500ml",
+      "category": "bottles",
+      "price_inr": 599,
+      "description": "Compact 500ml flask that keeps coffee warm for hours. Screw lid, slim profile, stainless exterior, good for commutes.",
+      "image_url": "https://demo.agentaudit.dev/img/sku_004.svg",
+      "page_url": "https://demo.agentaudit.dev/p/sku_004",
+      "tier": "medium",
+      "structured_data": {
+        "jsonld_present": true,
+        "fields_present": [
+          "name",
+          "price"
+        ],
+        "price_fresh": false,
+        "title_quality": 0.54,
+        "description_quality": 0.44
+      }
+    },
+    {
+      "id": "sku_005",
+      "title": "Water Bottle",
+      "display_name": "Water Bottle",
+      "category": "bottles",
+      "price_inr": 649,
+      "description": "Good quality water bottle.",
+      "image_url": null,
+      "page_url": "https://demo.agentaudit.dev/p/sku_005",
+      "tier": "starved",
+      "structured_data": {
+        "jsonld_present": false,
+        "fields_present": [],
+        "price_fresh": null,
+        "title_quality": 0.1,
+        "description_quality": 0.08
+      }
+    },
+    {
+      "id": "sku_006",
+      "title": "Steel Bottle",
+      "display_name": "Steel Bottle",
+      "category": "bottles",
+      "price_inr": 679,
+      "description": "Stainless steel bottle.",
+      "image_url": null,
+      "page_url": "https://demo.agentaudit.dev/p/sku_006",
+      "tier": "starved",
+      "structured_data": {
+        "jsonld_present": false,
+        "fields_present": [],
+        "price_fresh": null,
+        "title_quality": 0.09,
+        "description_quality": 0.07
+      }
+    },
+    {
+      "id": "sku_007",
+      "title": "HydroMax Elite 750ml Insulated Bottle \u2014 24h Cold Vacuum Steel, Leak-Proof",
+      "display_name": "HydroMax Elite 750ml",
+      "category": "bottles",
+      "price_inr": 999,
+      "description": "Double-wall vacuum-insulated 750ml bottle in 18/8 food-grade steel keeps drinks cold for 24 hours and hot for 12. Powder-coated matte finish resists scratches and sweat; leak-proof twist cap with carry loop; 310g; BPA-free; fits standard car cup holders; lifetime warranty on insulation.",
+      "image_url": "https://demo.agentaudit.dev/img/sku_007.svg",
+      "page_url": "https://demo.agentaudit.dev/p/sku_007",
+      "tier": "rich",
+      "structured_data": {
+        "jsonld_present": true,
+        "fields_present": [
+          "name",
+          "price",
+          "availability",
+          "image",
+          "brand",
+          "aggregateRating"
+        ],
+        "price_fresh": true,
+        "title_quality": 0.94,
+        "description_quality": 0.88
+      }
+    },
+    {
+      "id": "sku_008",
+      "title": "Insulated Bottle",
+      "display_name": "Insulated Bottle",
+      "category": "bottles",
+      "price_inr": 699,
+      "description": "Keeps water hot and cold.",
+      "image_url": null,
+      "page_url": "https://demo.agentaudit.dev/p/sku_008",
+      "tier": "starved",
+      "structured_data": {
+        "jsonld_present": false,
+        "fields_present": [],
+        "price_fresh": null,
+        "title_quality": 0.11,
+        "description_quality": 0.09
+      }
+    },
+    {
+      "id": "sku_009",
+      "title": "PeakChill 1.2L Insulated Jug \u2014 Wide-Mouth Handle, Condensation-Free",
+      "display_name": "PeakChill 1.2L",
+      "category": "bottles",
+      "price_inr": 1199,
+      "description": "Wide-mouth 1.2L insulated jug with soft-grip handle pours cleanly and keeps water cold through long summer sessions and team practices. 18/8 stainless liner, powder-coat exterior, silicone-sealed leak-proof lid, 1.1kg; condensation-free double-wall build; dishwasher-safe lid; ideal for courtside, campsites, and construction sites alike.",
+      "image_url": "https://demo.agentaudit.dev/img/sku_009.svg",
+      "page_url": "https://demo.agentaudit.dev/p/sku_009",
+      "tier": "rich",
+      "structured_data": {
+        "jsonld_present": true,
+        "fields_present": [
+          "name",
+          "price",
+          "availability",
+          "image",
+          "brand",
+          "aggregateRating"
+        ],
+        "price_fresh": true,
+        "title_quality": 0.87,
+        "description_quality": 0.84
+      }
+    },
+    {
+      "id": "sku_010",
+      "title": "BassBud Z2 Wired Earphones",
+      "display_name": "BassBud Z2",
+      "category": "headphones",
+      "price_inr": 499,
+      "description": "Wired earphones with punchy bass and inline mic. Three-button remote, tangle-flat cable, three ear-tip sizes in box.",
+      "image_url": "https://demo.agentaudit.dev/img/sku_010.svg",
+      "page_url": "https://demo.agentaudit.dev/p/sku_010",
+      "tier": "medium",
+      "structured_data": {
+        "jsonld_present": true,
+        "fields_present": [
+          "name",
+          "price"
+        ],
+        "price_fresh": false,
+        "title_quality": 0.57,
+        "description_quality": 0.46
+      }
+    },
+    {
+      "id": "sku_011",
+      "title": "AirDuet Buds TWS Earbuds",
+      "display_name": "AirDuet Buds",
+      "category": "headphones",
+      "price_inr": 899,
+      "description": "True wireless earbuds with charging case. Touch controls, decent battery life, Bluetooth 5.0, IPX4 splash resistance for workouts.",
+      "image_url": "https://demo.agentaudit.dev/img/sku_011.svg",
+      "page_url": "https://demo.agentaudit.dev/p/sku_011",
+      "tier": "medium",
+      "structured_data": {
+        "jsonld_present": true,
+        "fields_present": [
+          "name",
+          "price"
+        ],
+        "price_fresh": false,
+        "title_quality": 0.59,
+        "description_quality": 0.48
+      }
+    },
+    {
+      "id": "sku_012",
+      "title": "ThumpPods On-Ear Bluetooth Headphones",
+      "display_name": "ThumpPods",
+      "category": "headphones",
+      "price_inr": 1299,
+      "description": "On-ear Bluetooth headphones with deep bass. Foldable design, cushioned pads, aux fallback, up to 20 hours playback.",
+      "image_url": "https://demo.agentaudit.dev/img/sku_012.svg",
+      "page_url": "https://demo.agentaudit.dev/p/sku_012",
+      "tier": "medium",
+      "structured_data": {
+        "jsonld_present": true,
+        "fields_present": [
+          "name",
+          "price"
+        ],
+        "price_fresh": false,
+        "title_quality": 0.56,
+        "description_quality": 0.45
+      }
+    },
+    {
+      "id": "sku_013",
+      "title": "HushTone ANC Earbuds",
+      "display_name": "HushTone ANC",
+      "category": "headphones",
+      "price_inr": 1999,
+      "description": "ANC earbuds that cut bus and metro noise. Four mics, low-latency mode, wireless charging case, comfortable fit.",
+      "image_url": "https://demo.agentaudit.dev/img/sku_013.svg",
+      "page_url": "https://demo.agentaudit.dev/p/sku_013",
+      "tier": "medium",
+      "structured_data": {
+        "jsonld_present": true,
+        "fields_present": [
+          "name",
+          "price"
+        ],
+        "price_fresh": false,
+        "title_quality": 0.61,
+        "description_quality": 0.49
+      }
+    },
+    {
+      "id": "sku_014",
+      "title": "VoxPace Wireless Headset with Mic",
+      "display_name": "VoxPace Headset",
+      "category": "headphones",
+      "price_inr": 3499,
+      "description": "Wireless headset with boom mic for calls and classes. Mute button, USB dongle plus Bluetooth, padded headband.",
+      "image_url": "https://demo.agentaudit.dev/img/sku_014.svg",
+      "page_url": "https://demo.agentaudit.dev/p/sku_014",
+      "tier": "medium",
+      "structured_data": {
+        "jsonld_present": true,
+        "fields_present": [
+          "name",
+          "price"
+        ],
+        "price_fresh": false,
+        "title_quality": 0.58,
+        "description_quality": 0.47
+      }
+    },
+    {
+      "id": "sku_015",
+      "title": "ClarityLab M50 Wired Monitoring Headphones",
+      "display_name": "ClarityLab M50",
+      "category": "headphones",
+      "price_inr": 4999,
+      "description": "Wired monitoring headphones with neutral sound for studio work. Coiled cable, replaceable pads, robust build, 40mm drivers.",
+      "image_url": "https://demo.agentaudit.dev/img/sku_015.svg",
+      "page_url": "https://demo.agentaudit.dev/p/sku_015",
+      "tier": "medium",
+      "structured_data": {
+        "jsonld_present": true,
+        "fields_present": [
+          "name",
+          "price"
+        ],
+        "price_fresh": false,
+        "title_quality": 0.62,
+        "description_quality": 0.51
+      }
+    },
+    {
+      "id": "sku_016",
+      "title": "Wireless Headphones",
+      "display_name": "Wireless Headphones",
+      "category": "headphones",
+      "price_inr": 2499,
+      "description": "Wireless headphones with good sound.",
+      "image_url": null,
+      "page_url": "https://demo.agentaudit.dev/p/sku_016",
+      "tier": "starved",
+      "structured_data": {
+        "jsonld_present": false,
+        "fields_present": [],
+        "price_fresh": null,
+        "title_quality": 0.1,
+        "description_quality": 0.08
+      }
+    },
+    {
+      "id": "sku_017",
+      "title": "AquaSteel Pro 1L Insulated Bottle \u2014 Matte Black",
+      "display_name": "AquaSteel Pro 1L",
+      "category": "bottles",
+      "price_inr": 749,
+      "description": "Double-walled 18/8 steel; 24h cold, 12h hot; 290g; leak-proof cap; BPA-free.",
+      "image_url": "https://demo.agentaudit.dev/img/sku_017.svg",
+      "page_url": "https://demo.agentaudit.dev/p/sku_017",
+      "tier": "rich",
+      "structured_data": {
+        "jsonld_present": true,
+        "fields_present": [
+          "name",
+          "price",
+          "availability",
+          "image",
+          "brand",
+          "aggregateRating"
+        ],
+        "price_fresh": true,
+        "title_quality": 0.9,
+        "description_quality": 0.85
+      }
+    },
+    {
+      "id": "sku_018",
+      "title": "Bluetooth Earbuds",
+      "display_name": "Bluetooth Earbuds",
+      "category": "headphones",
+      "price_inr": 2999,
+      "description": "Earbuds with charging case.",
+      "image_url": null,
+      "page_url": "https://demo.agentaudit.dev/p/sku_018",
+      "tier": "starved",
+      "structured_data": {
+        "jsonld_present": false,
+        "fields_present": [],
+        "price_fresh": null,
+        "title_quality": 0.08,
+        "description_quality": 0.07
+      }
+    },
+    {
+      "id": "sku_019",
+      "title": "SkySilence Pro ANC Headphones \u2014 40h Battery, LDAC, Multipoint",
+      "display_name": "SkySilence Pro",
+      "category": "headphones",
+      "price_inr": 8999,
+      "description": "Over-ear active noise-cancelling headphones tuned for long-haul focus. Hybrid ANC attenuates cabin and office noise; 40-hour battery with USB-C fast charge; multipoint Bluetooth 5.3 with LDAC; memory-foam earcups; foldable aluminium yokes; includes flight adapter and hard case; wear detection pauses playback the moment you take them off.",
+      "image_url": "https://demo.agentaudit.dev/img/sku_019.svg",
+      "page_url": "https://demo.agentaudit.dev/p/sku_019",
+      "tier": "rich",
+      "structured_data": {
+        "jsonld_present": true,
+        "fields_present": [
+          "name",
+          "price",
+          "availability",
+          "image",
+          "brand",
+          "aggregateRating"
+        ],
+        "price_fresh": true,
+        "title_quality": 0.92,
+        "description_quality": 0.86
+      }
+    },
+    {
+      "id": "sku_020",
+      "title": "ApexResonance X1 Reference Headphones \u2014 Planar Magnetic, Open-Back",
+      "display_name": "ApexResonance X1",
+      "category": "headphones",
+      "price_inr": 12999,
+      "description": "Reference-grade planar-magnetic over-ear headphones with 98mm drivers, 15Hz-50kHz response, and low-distortion double-sided magnet arrays. Open-back design images widely; detachable balanced 2.5mm and 3.5mm cables; magnesium alloy frame; velour and protein-leather pads included; 320g without cable; scales beautifully with desktop amps.",
+      "image_url": "https://demo.agentaudit.dev/img/sku_020.svg",
+      "page_url": "https://demo.agentaudit.dev/p/sku_020",
+      "tier": "rich",
+      "structured_data": {
+        "jsonld_present": true,
+        "fields_present": [
+          "name",
+          "price",
+          "availability",
+          "image",
+          "brand",
+          "aggregateRating"
+        ],
+        "price_fresh": true,
+        "title_quality": 0.91,
+        "description_quality": 0.89
+      }
+    },
+    {
+      "id": "sku_021",
+      "title": "UrbanTote 15L Daypack",
+      "display_name": "UrbanTote 15L",
+      "category": "backpacks",
+      "price_inr": 699,
+      "description": "Simple 15L daypack for city errands. Water-resistant fabric, front zip pocket, padded shoulder straps, laptop sleeve up to 14 inches.",
+      "image_url": "https://demo.agentaudit.dev/img/sku_021.svg",
+      "page_url": "https://demo.agentaudit.dev/p/sku_021",
+      "tier": "medium",
+      "structured_data": {
+        "jsonld_present": true,
+        "fields_present": [
+          "name",
+          "price"
+        ],
+        "price_fresh": false,
+        "title_quality": 0.57,
+        "description_quality": 0.46
+      }
+    },
+    {
+      "id": "sku_022",
+      "title": "CampusCarry 25L College Backpack",
+      "display_name": "CampusCarry 25L",
+      "category": "backpacks",
+      "price_inr": 999,
+      "description": "25L college backpack with organiser panel. Fits notebooks, charger bricks, and a 15-inch laptop; reinforced base; bottle pockets.",
+      "image_url": "https://demo.agentaudit.dev/img/sku_022.svg",
+      "page_url": "https://demo.agentaudit.dev/p/sku_022",
+      "tier": "medium",
+      "structured_data": {
+        "jsonld_present": true,
+        "fields_present": [
+          "name",
+          "price"
+        ],
+        "price_fresh": false,
+        "title_quality": 0.58,
+        "description_quality": 0.47
+      }
+    },
+    {
+      "id": "sku_023",
+      "title": "Daypack",
+      "display_name": "TrailBuddy Daypack 22L",
+      "category": "backpacks",
+      "price_inr": 1899,
+      "description": "Durable daypack for daily use.",
+      "image_url": null,
+      "page_url": "https://demo.agentaudit.dev/p/sku_023",
+      "tier": "starved",
+      "structured_data": {
+        "jsonld_present": false,
+        "fields_present": [],
+        "price_fresh": null,
+        "title_quality": 0.1,
+        "description_quality": 0.09
+      }
+    },
+    {
+      "id": "sku_024",
+      "title": "TrailPack Lite 18L Hiking Daypack",
+      "display_name": "TrailPack Lite 18L",
+      "category": "backpacks",
+      "price_inr": 1299,
+      "description": "Featherweight 18L hiking daypack for short trails. Breathable back panel, hip belt, trekking-pole loops, emergency whistle on chest strap.",
+      "image_url": "https://demo.agentaudit.dev/img/sku_024.svg",
+      "page_url": "https://demo.agentaudit.dev/p/sku_024",
+      "tier": "medium",
+      "structured_data": {
+        "jsonld_present": true,
+        "fields_present": [
+          "name",
+          "price"
+        ],
+        "price_fresh": false,
+        "title_quality": 0.6,
+        "description_quality": 0.49
+      }
+    },
+    {
+      "id": "sku_025",
+      "title": "CommutePro 20L Laptop Backpack",
+      "display_name": "CommutePro 20L",
+      "category": "backpacks",
+      "price_inr": 1599,
+      "description": "20L commuter backpack with quick-access top pocket. Water-repellent shell, luggage strap, reflective accents, padded 15.6-inch laptop bay.",
+      "image_url": "https://demo.agentaudit.dev/img/sku_025.svg",
+      "page_url": "https://demo.agentaudit.dev/p/sku_025",
+      "tier": "medium",
+      "structured_data": {
+        "jsonld_present": true,
+        "fields_present": [
+          "name",
+          "price"
+        ],
+        "price_fresh": false,
+        "title_quality": 0.59,
+        "description_quality": 0.48
+      }
+    },
+    {
+      "id": "sku_026",
+      "title": "Backpack",
+      "display_name": "Backpack",
+      "category": "backpacks",
+      "price_inr": 1699,
+      "description": "Spacious backpack for everyday use.",
+      "image_url": null,
+      "page_url": "https://demo.agentaudit.dev/p/sku_026",
+      "tier": "starved",
+      "structured_data": {
+        "jsonld_present": false,
+        "fields_present": [],
+        "price_fresh": null,
+        "title_quality": 0.09,
+        "description_quality": 0.08
+      }
+    },
+    {
+      "id": "sku_027",
+      "title": "GripFlex Training Gloves",
+      "display_name": "GripFlex Gloves",
+      "category": "fitness",
+      "price_inr": 299,
+      "description": "Training gloves with padded palm and wrist wrap. Machine-washable, breathable back, sizes S-XL, good pull-up grip.",
+      "image_url": "https://demo.agentaudit.dev/img/sku_027.svg",
+      "page_url": "https://demo.agentaudit.dev/p/sku_027",
+      "tier": "medium",
+      "structured_data": {
+        "jsonld_present": true,
+        "fields_present": [
+          "name",
+          "price"
+        ],
+        "price_fresh": false,
+        "title_quality": 0.55,
+        "description_quality": 0.45
+      }
+    },
+    {
+      "id": "sku_028",
+      "title": "Rucksack",
+      "display_name": "Rucksack",
+      "category": "backpacks",
+      "price_inr": 2099,
+      "description": "Large rucksack for travel.",
+      "image_url": null,
+      "page_url": "https://demo.agentaudit.dev/p/sku_028",
+      "tier": "starved",
+      "structured_data": {
+        "jsonld_present": false,
+        "fields_present": [],
+        "price_fresh": null,
+        "title_quality": 0.08,
+        "description_quality": 0.07
+      }
+    },
+    {
+      "id": "sku_029",
+      "title": "RidgeLine 30L Trek Backpack \u2014 Rain Cover, Hydration-Ready, Ventilated Back",
+      "display_name": "RidgeLine 30L",
+      "category": "backpacks",
+      "price_inr": 2499,
+      "description": "Trek-ready 30L backpack in ripstop nylon with rain cover stowed in the base pocket. Padded 16-inch laptop sleeve, hydration bladder sleeve with exit port, trekking-pole attachment, ventilated air-mesh back panel; 980g; whistle-buckle sternum strap; load-lifter straps pull weight off your shoulders on steep ascents; lifetime stitching guarantee.",
+      "image_url": "https://demo.agentaudit.dev/img/sku_029.svg",
+      "page_url": "https://demo.agentaudit.dev/p/sku_029",
+      "tier": "rich",
+      "structured_data": {
+        "jsonld_present": true,
+        "fields_present": [
+          "name",
+          "price",
+          "availability",
+          "image",
+          "brand",
+          "aggregateRating"
+        ],
+        "price_fresh": true,
+        "title_quality": 0.93,
+        "description_quality": 0.87
+      }
+    },
+    {
+      "id": "sku_030",
+      "title": "NomadVault 35L Travel Backpack \u2014 Anti-Theft Zips, USB Pass-Through",
+      "display_name": "NomadVault 35L",
+      "category": "backpacks",
+      "price_inr": 2999,
+      "description": "Anti-theft travel backpack with lockable YKK zippers, hidden rear pocket, and RFID-safe valuables pouch. 35L clamshell opens flat for packing cubes; external USB pass-through (powerbank not included); water-repellent 900D shell; luggage pass-through strap; 1.25kg; fits 17-inch laptops; rear handle slides over suitcase trolleys for airport runs.",
+      "image_url": "https://demo.agentaudit.dev/img/sku_030.svg",
+      "page_url": "https://demo.agentaudit.dev/p/sku_030",
+      "tier": "rich",
+      "structured_data": {
+        "jsonld_present": true,
+        "fields_present": [
+          "name",
+          "price",
+          "availability",
+          "image",
+          "brand",
+          "aggregateRating"
+        ],
+        "price_fresh": true,
+        "title_quality": 0.9,
+        "description_quality": 0.88
+      }
+    },
+    {
+      "id": "sku_031",
+      "title": "SummitForge 45L Expedition Pack \u2014 Internal Frame, Rain Cover",
+      "display_name": "SummitForge 45L",
+      "category": "backpacks",
+      "price_inr": 3499,
+      "description": "Expedition pack with adjustable internal frame, load-lifter straps, and ventilated hip belt transferring weight off shoulders. 45L main compartment with divider and sleeping-bag access; six compression straps; ice-tool loop; 1.6kg; rain cover included; hydration sleeve accepts 2L reservoirs; sized for week-long treks.",
+      "image_url": "https://demo.agentaudit.dev/img/sku_031.svg",
+      "page_url": "https://demo.agentaudit.dev/p/sku_031",
+      "tier": "rich",
+      "structured_data": {
+        "jsonld_present": true,
+        "fields_present": [
+          "name",
+          "price",
+          "availability",
+          "image",
+          "brand",
+          "aggregateRating"
+        ],
+        "price_fresh": true,
+        "title_quality": 0.89,
+        "description_quality": 0.85
+      }
+    },
+    {
+      "id": "sku_032",
+      "title": "CoreFit Yoga Mat 6mm",
+      "display_name": "CoreFit Mat",
+      "category": "fitness",
+      "price_inr": 499,
+      "description": "6mm yoga mat with anti-slip texture. 183x61cm, carry strap included, cushions knees and wrists on hard floors.",
+      "image_url": "https://demo.agentaudit.dev/img/sku_032.svg",
+      "page_url": "https://demo.agentaudit.dev/p/sku_032",
+      "tier": "medium",
+      "structured_data": {
+        "jsonld_present": true,
+        "fields_present": [
+          "name",
+          "price"
+        ],
+        "price_fresh": false,
+        "title_quality": 0.56,
+        "description_quality": 0.46
+      }
+    },
+    {
+      "id": "sku_033",
+      "title": "PulseBand Fabric Resistance Band Set",
+      "display_name": "PulseBand Set",
+      "category": "fitness",
+      "price_inr": 699,
+      "description": "Set of five fabric resistance bands from light to extra-heavy. Non-roll design, door anchor included, colour-coded, workout guide inside.",
+      "image_url": "https://demo.agentaudit.dev/img/sku_033.svg",
+      "page_url": "https://demo.agentaudit.dev/p/sku_033",
+      "tier": "medium",
+      "structured_data": {
+        "jsonld_present": true,
+        "fields_present": [
+          "name",
+          "price"
+        ],
+        "price_fresh": false,
+        "title_quality": 0.58,
+        "description_quality": 0.48
+      }
+    },
+    {
+      "id": "sku_034",
+      "title": "FlexCage Mesh Gym Bag",
+      "display_name": "FlexCage Bag",
+      "category": "fitness",
+      "price_inr": 899,
+      "description": "Ventilated mesh gym bag with shoe compartment. 25L, water-resistant base, adjustable strap, zip pockets for kit.",
+      "image_url": "https://demo.agentaudit.dev/img/sku_034.svg",
+      "page_url": "https://demo.agentaudit.dev/p/sku_034",
+      "tier": "medium",
+      "structured_data": {
+        "jsonld_present": true,
+        "fields_present": [
+          "name",
+          "price"
+        ],
+        "price_fresh": false,
+        "title_quality": 0.54,
+        "description_quality": 0.44
+      }
+    },
+    {
+      "id": "sku_035",
+      "title": "Fitness Kit",
+      "display_name": "Fitness Kit",
+      "category": "fitness",
+      "price_inr": 1099,
+      "description": "Complete fitness kit for home.",
+      "image_url": null,
+      "page_url": "https://demo.agentaudit.dev/p/sku_035",
+      "tier": "starved",
+      "structured_data": {
+        "jsonld_present": false,
+        "fields_present": [],
+        "price_fresh": null,
+        "title_quality": 0.09,
+        "description_quality": 0.08
+      }
+    },
+    {
+      "id": "sku_036",
+      "title": "Workout Set",
+      "display_name": "Workout Set",
+      "category": "fitness",
+      "price_inr": 1299,
+      "description": "Everything needed for workouts.",
+      "image_url": null,
+      "page_url": "https://demo.agentaudit.dev/p/sku_036",
+      "tier": "starved",
+      "structured_data": {
+        "jsonld_present": false,
+        "fields_present": [],
+        "price_fresh": null,
+        "title_quality": 0.08,
+        "description_quality": 0.07
+      }
+    },
+    {
+      "id": "sku_037",
+      "title": "StrideTrack Skipping Rope with Counter",
+      "display_name": "StrideTrack Rope",
+      "category": "fitness",
+      "price_inr": 1499,
+      "description": "Skipping rope with built-in digital jump counter for daily cardio. Adjustable length, soft foam grips, smooth ball-bearing spin, batteries included in the box.",
+      "image_url": "https://demo.agentaudit.dev/img/sku_037.svg",
+      "page_url": "https://demo.agentaudit.dev/p/sku_037",
+      "tier": "medium",
+      "structured_data": {
+        "jsonld_present": true,
+        "fields_present": [
+          "name",
+          "price"
+        ],
+        "price_fresh": false,
+        "title_quality": 0.57,
+        "description_quality": 0.47
+      }
+    },
+    {
+      "id": "sku_038",
+      "title": "IronGrip Adjustable Dumbbell Pair 10kg",
+      "display_name": "IronGrip Dumbbells",
+      "category": "fitness",
+      "price_inr": 1799,
+      "description": "Adjustable dumbbell pair from 2-10kg each. Dial-a-weight plates, knurled handles, storage trays, floor-friendly rubber coating.",
+      "image_url": "https://demo.agentaudit.dev/img/sku_038.svg",
+      "page_url": "https://demo.agentaudit.dev/p/sku_038",
+      "tier": "medium",
+      "structured_data": {
+        "jsonld_present": true,
+        "fields_present": [
+          "name",
+          "price"
+        ],
+        "price_fresh": false,
+        "title_quality": 0.61,
+        "description_quality": 0.5
+      }
+    },
+    {
+      "id": "sku_039",
+      "title": "VitalStride Smart Jump Rope \u2014 App Sync, Rep Counting, 30-Day Battery",
+      "display_name": "VitalStride Smart Rope",
+      "category": "fitness",
+      "price_inr": 2199,
+      "description": "Smart skipping rope with bearing-smooth ballast handles that counts jumps, calories, and intervals in the VitalStride app over Bluetooth. Knurled aluminium handles; 3m adjustable steel-core rope, user-replaceable; 30-day battery life; offline mode stores sessions; supports family profiles and weekly goals.",
+      "image_url": "https://demo.agentaudit.dev/img/sku_039.svg",
+      "page_url": "https://demo.agentaudit.dev/p/sku_039",
+      "tier": "rich",
+      "structured_data": {
+        "jsonld_present": true,
+        "fields_present": [
+          "name",
+          "price",
+          "availability",
+          "image",
+          "brand",
+          "aggregateRating"
+        ],
+        "price_fresh": true,
+        "title_quality": 0.9,
+        "description_quality": 0.86
+      }
+    },
+    {
+      "id": "sku_040",
+      "title": "ForgeMaster Home Gym Kit \u2014 5-70kg Stackable Bands, Door Anchor",
+      "display_name": "ForgeMaster Gym Kit",
+      "category": "fitness",
+      "price_inr": 2699,
+      "description": "Complete doorway resistance system: stackable latex bands from 5-70kg, door anchor, ankle straps, and padded handles for 100+ exercises. Progressive-overload chart included; latex tested to 50,000 pulls; mesh travel bag included; replaces a full rack of dumbbells in a small hostel room.",
+      "image_url": "https://demo.agentaudit.dev/img/sku_040.svg",
+      "page_url": "https://demo.agentaudit.dev/p/sku_040",
+      "tier": "rich",
+      "structured_data": {
+        "jsonld_present": true,
+        "fields_present": [
+          "name",
+          "price",
+          "availability",
+          "image",
+          "brand",
+          "aggregateRating"
+        ],
+        "price_fresh": true,
+        "title_quality": 0.88,
+        "description_quality": 0.85
+      }
+    }
+  ],
+  "baseline_order": [
+    "sku_031",
+    "sku_013",
+    "sku_028",
+    "sku_011",
+    "sku_019",
+    "sku_021",
+    "sku_035",
+    "sku_032",
+    "sku_017",
+    "sku_010",
+    "sku_016",
+    "sku_022",
+    "sku_039",
+    "sku_034",
+    "sku_005",
+    "sku_012",
+    "sku_029",
+    "sku_038",
+    "sku_023",
+    "sku_024",
+    "sku_030",
+    "sku_033",
+    "sku_036",
+    "sku_015",
+    "sku_040",
+    "sku_014",
+    "sku_006",
+    "sku_027",
+    "sku_020",
+    "sku_004",
+    "sku_018",
+    "sku_003",
+    "sku_007",
+    "sku_001",
+    "sku_008",
+    "sku_002",
+    "sku_009",
+    "sku_025",
+    "sku_026",
+    "sku_037"
+  ]
+}

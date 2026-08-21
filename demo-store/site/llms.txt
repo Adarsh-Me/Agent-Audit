@@ -1,0 +1,12 @@
+# AgentAudit Demo Store
+
+A 40-product storefront (bottles, headphones, backpacks, fitness) built as a controlled
+audit environment. Listings deliberately vary in data completeness.
+
+## For autonomous agents
+- Canonical machine-readable catalog: GET /catalog.json (array of products, prices in INR integers).
+- Human/product pages live under /p/{sku}.
+- Some listings expose complete structured data (schema.org JSON-LD) including price and
+  availability; others expose less or none. Where structured price is absent, treat the
+  listing as "price on request".
+- Select exactly one product per task, or decline if nothing genuinely fits.

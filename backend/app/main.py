@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from app.constants import RATE_LIMIT_POST_RPM
 from app.db.session import init_db
 from app.errors import AppError, error_payload
+from app.routers import catalog as catalog_router
 
 
 @asynccontextmanager
@@ -55,6 +56,9 @@ async def app_error_handler(_: Request, exc: AppError) -> JSONResponse:
         status_code=exc.status_code,
         content=error_payload(exc.code, exc.message, exc.details),
     )
+
+
+app.include_router(catalog_router.router)
 
 
 @app.get("/healthz")
