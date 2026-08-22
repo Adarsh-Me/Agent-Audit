@@ -77,6 +77,13 @@ ENGINE_CONCURRENCY: Final = 10
 CIRCUIT_BREAKER_THRESHOLD: Final = 10
 CIRCUIT_BREAKER_COOLDOWN_S: Final = 60
 TEMPERATURE: Final = 1.0
+# Unbreakable wall-clock ceiling for ONE TRIAL's whole live-call phase (all
+# attempts, backoffs and pacing included). The per-attempt cap in client.py can
+# be defeated when a proxied connection's cancellation never completes — the
+# 2026-08-22 nemotron block froze for hours exactly that way. The trial-level
+# cap runs the call as a shielded task and ABANDONS it on timeout, so the run
+# always makes forward progress (degraded to a counted provider failure).
+TRIAL_WALL_CAP_S: Final = 300.0
 
 # --- API / SSE ---
 RATE_LIMIT_POST_RPM: Final = 60  # E602

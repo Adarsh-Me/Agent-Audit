@@ -9,6 +9,7 @@ Presented orders:
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import random
 from dataclasses import dataclass, field
@@ -19,7 +20,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.config import get_settings
-from app.constants import COST_CAP_USD, PARSE_RETRIES
+from app.constants import COST_CAP_USD, PARSE_RETRIES, TRIAL_WALL_CAP_S
 from app.db.models import Product, Run, Trial
 from app.engine import prompts as P
 from app.engine.cache import cache_get, cache_put
@@ -32,6 +33,34 @@ from pathlib import Path
 ProgressCb = Callable[[dict], Awaitable[None]]
 
 DEMO_ROOT = Path(__file__).resolve().parents[3] / "demo-store"
+
+
+def _consume_task_exception(task: "asyncio.Task") -> None:
+    """Done-callback so abandoned tasks never surface 'exception was never retrieved'."""
+    if not task.cancelled():
+        task.exception()
+
+
+async def _shielded_live_call(coro: Awaitable[LLMResponse],
+                              cap_s: float | None = None) -> LLMResponse:
+    """Run one chat() call (retries + backoff included) under an UNBREAKABLE cap.
+
+    Plain wait_for cannot bound a coroutine whose cancellation never completes —
+    a proxied connection can hang past every httpx bound AND ignore cancel
+    (2026-08-22 nemotron freeze). Shielding the task and abandoning it on
+    timeout guarantees the caller resumes at the cap no matter what the inner
+    task does; the leaked task is cancelled best-effort and its exception
+    consumed. The trial degrades to a counted provider failure instead.
+    """
+    cap = TRIAL_WALL_CAP_S if cap_s is None else cap_s
+    task = asyncio.create_task(coro)
+    task.add_done_callback(_consume_task_exception)
+    try:
+        return await asyncio.wait_for(asyncio.shield(task), timeout=cap)
+    except TimeoutError:
+        task.cancel()
+        raise ProviderError(
+            f"trial wall cap ({cap:.0f}s) exceeded — attempt abandoned") from None
 
 
 @dataclass
@@ -197,8 +226,18 @@ class Runner:
                                         null_allowed=spec.null_allowed, framing_variant=variant)
                 phash = P.prompt_hash(prompt, spec.seed)
 
-                outcome = await self._execute_trial(spec, prompt, phash, set(by_sku),
-                                                    ledger, emit, ordinal_map)
+                try:
+                    outcome = await self._execute_trial(spec, prompt, phash, set(by_sku),
+                                                        ledger, emit, ordinal_map)
+                except Exception as exc:  # noqa: BLE001
+                    # Engine-level escape hatch: NO single trial may kill a
+                    # 640-trial run (2026-08-22 freeze post-mortem). Counted as
+                    # a provider-style failure, surfaced via parse_rate.
+                    await emit({"type": "trial", "model": spec.model,
+                                "persona_id": spec.persona_id,
+                                "condition": spec.condition, "choice": None,
+                                "latency_ms": 0, "parse_ok": False})
+                    outcome = TrialOutcome(None, f"engine error: {exc}", 0, False, False)
                 batch.append(Trial(
                     run_id=run_id,
                     model=spec.model,
@@ -281,8 +320,9 @@ class Runner:
         last: LLMResponse | None = None
         for attempt in range(PARSE_RETRIES):
             try:
-                resp = await self.deps.client.chat(entry, prompt, spec.seed,
-                                                   system_feedback=feedback)
+                resp = await _shielded_live_call(
+                    self.deps.client.chat(entry, prompt, spec.seed,
+                                          system_feedback=feedback))
             except ProviderError as exc:
                 # provider-side failure (429 storm / breaker / blank content after
                 # retries): count this trial as a parse failure and keep the run
