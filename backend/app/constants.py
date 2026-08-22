@@ -60,6 +60,18 @@ S_AGENT_DEFAULT: Final = 0.20
 COST_CAP_USD: Final = 30.0
 PROJECT_COST_CAP_USD: Final = 35.0
 
+# --- Agent money-policy (SAFETY.md) — what the shopping agent may purchase ---
+# Per-payment-link ceiling. Rationale: the demo catalog's median price is ~₹1,199
+# and its "rich" anchors top out at ₹999, so ₹2,000 covers every realistic demo
+# checkout while blocking high-ticket SKUs (₹2,499+) from autonomous purchase.
+AGENT_SPEND_CAP_INR: Final = 2_000
+# Default purchasable allowlist: exactly the demo-store catalog ids (sku_001 …
+# sku_040, matching demo-store/generate.py). Closed list — uploaded-catalog or
+# arbitrary skus need an explicit merchant override via AGENT_ALLOWED_SKUS.
+AGENT_DEFAULT_ALLOWED_SKUS: Final = tuple(
+    f"sku_{i:03d}" for i in range(1, CATALOG_SIZE_DEMO + 1)
+)
+
 # --- Upload validation (SCHEMA §3.1.4) ---
 UPLOAD_MAX_PRODUCTS: Final = 500   # E101
 UPLOAD_MIN_PRODUCTS: Final = 5     # E107
@@ -126,6 +138,9 @@ ERROR_CODES: Final = {
     "E402": ("scoring", 422, "config invalid (weights ≠ 1.0)"),
     "E501": ("razorpay", 400, "webhook signature mismatch"),
     "E502": ("razorpay", 502, "payment link creation failed"),
+    "E503": ("razorpay", 403, "agent spend cap exceeded (SAFETY.md)"),
+    "E504": ("razorpay", 403, "sku not on agent purchasable whitelist (SAFETY.md)"),
+    "E505": ("razorpay", 403, "live Razorpay keys refused — test mode only (SAFETY.md)"),
     "E601": ("api", 404, "run/catalog not found"),
     "E602": ("api", 429, "rate limited"),
 }

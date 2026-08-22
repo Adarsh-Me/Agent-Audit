@@ -1,7 +1,9 @@
 """Payments + Razorpay webhook — agent-to-ledger proof (TECHSPEC §12, SCHEMA §9).
 
 POST /api/payments/link      idempotent per (run_id, sku) — replays return the same
-                             link with short_url re-fetched live
+                             link with short_url re-fetched live. Money-policy gates
+                             (SAFETY.md): test-mode-only keys (E505), purchasable-SKU
+                             whitelist (E504), per-link spend cap (E503).
 GET  /api/payments/{run_id}/status   webhook-badge polling (target ≤ 5 s)
 POST /api/webhooks/razorpay          HMAC-verified, deduped via webhook_events
 """
@@ -13,7 +15,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 import httpx
 
-from app.config import get_settings
+from app.config import Settings, get_settings
+from app.constants import AGENT_DEFAULT_ALLOWED_SKUS
 from app.db.models import Payment, Product, Run, WebhookEvent
 from app.db.session import get_session
 from app.errors import AppError
@@ -27,11 +30,29 @@ class LinkRequest(BaseModel):
     sku: str
 
 
+def _allowed_skus(s: Settings) -> frozenset[str]:
+    """Merchant allowlist: AGENT_ALLOWED_SKUS csv if set, else the demo-store list."""
+    raw = s.agent_allowed_skus.strip()
+    if raw:
+        return frozenset(part.strip() for part in raw.split(",") if part.strip())
+    return frozenset(AGENT_DEFAULT_ALLOWED_SKUS)
+
+
+def _enforce_test_mode(key_id: str) -> None:
+    """Money actions are TEST-MODE-only — refuse live keys before any network call."""
+    if not key_id.startswith("rzp_test_"):
+        raise AppError("E505", "live Razorpay keys refused — agent checkout runs in "
+                               "test mode only (RAZORPAY_KEY_ID must start with "
+                               "rzp_test_)", status_code=403,
+                       details={"policy": "test_mode_only"})
+
+
 def _client() -> RazorpayClient:
     s = get_settings()
     if not s.razorpay_key_id or not s.razorpay_key_secret:
         raise AppError("E502", "Razorpay keys not configured — set RAZORPAY_KEY_ID/"
                                "RAZORPAY_KEY_SECRET in .env", status_code=503)
+    _enforce_test_mode(s.razorpay_key_id)
     return RazorpayClient(s.razorpay_key_id, s.razorpay_key_secret)
 
 
@@ -65,6 +86,23 @@ async def create_link(body: LinkRequest,
                               Product.sku == body.sku))
     if product is None or product.price_inr is None:
         raise AppError("E601", f"sku not found in run catalog: {body.sku}", status_code=404)
+
+    # Money-policy gates (SAFETY.md) — checked against the DB-stored price, so the
+    # agent cannot influence the charged amount. Distinct codes name which policy
+    # fired: E504 whitelist (which SKU) vs E503 cap (how much).
+    s = get_settings()
+    if body.sku not in _allowed_skus(s):
+        raise AppError("E504", f"sku not on agent purchasable whitelist: {body.sku} — "
+                               "add it via AGENT_ALLOWED_SKUS to allow purchase",
+                       status_code=403,
+                       details={"policy": "sku_whitelist", "sku": body.sku})
+    if product.price_inr > s.max_agent_spend_inr:
+        raise AppError("E503", f"agent spend cap exceeded: ₹{product.price_inr} > "
+                               f"MAX_AGENT_SPEND_INR ₹{s.max_agent_spend_inr}",
+                       status_code=403,
+                       details={"policy": "spend_cap",
+                                "requested_inr": product.price_inr,
+                                "cap_inr": s.max_agent_spend_inr})
 
     rp = _client()
     try:
