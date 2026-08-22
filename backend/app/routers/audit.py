@@ -205,7 +205,8 @@ async def compute_and_store_metrics(session: AsyncSession, run_id: str) -> dict:
         },
         "invisible_skus": [
             {"sku": sku.replace("share:", ""),
-             "share": _ci(boot[sku])}
+             "share": _ci((point["shares"].get(sku.replace("share:", ""), 0.0),
+                           *boot[sku]))}
             for sku in sorted(k for k in boot if k.startswith("share:"))
             if boot[sku][1] < 1.0 / (n_catalog or 40)
         ],
