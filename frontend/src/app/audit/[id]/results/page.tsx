@@ -196,7 +196,7 @@ export default function ResultsPage() {
             <div className="dial-label">Recoverable</div>
             {recoverable ? (
               <>
-                <div style={{ fontSize: 22, fontWeight: 700, color: "var(--green)" }} title="95% confidence interval, persona-cluster bootstrap, B = 2,000">
+                <div style={{ fontSize: 22, fontWeight: 700, color: "var(--pos)" }} title="95% confidence interval, persona-cluster bootstrap, B = 2,000">
                   {inr(recoverable.value)}/mo{" "}
                   <span className="ci-range" style={{ fontSize: 13 }}>
                     [{inr(recoverable.ci_low)} – {inr(recoverable.ci_high)}]
@@ -310,7 +310,7 @@ export default function ResultsPage() {
           share (1/N = 2.5%) — an agent picking uniformly at random would beat them.
         </p>
         {report.invisible_skus.length === 0 ? (
-          <p className="sub" style={{ color: "var(--green)" }}>
+          <p className="sub" style={{ color: "var(--pos)" }}>
             None flagged in this run.
           </p>
         ) : (
@@ -327,7 +327,7 @@ export default function ResultsPage() {
                     </span>
                   </span>
                 }
-                sub={<span style={{ color: "var(--rose)" }}>CI-upper &lt; 1/N → invisible</span>}
+                sub={<span style={{ color: "var(--flag)" }}>CI-upper &lt; 1/N → invisible</span>}
               />
             ))}
           </div>
@@ -367,7 +367,7 @@ export default function ResultsPage() {
                     style={{
                       color:
                         Math.abs(m.delta) > report.framing.mean_delta.value
-                          ? "var(--amber)"
+                          ? "var(--muted)"
                           : undefined,
                     }}
                   >
@@ -581,7 +581,7 @@ function SlotChart({ perSlot }: { perSlot: number[] }) {
           title={`slot ${i + 1}: ${pct(v)}`}
           style={{
             flex: 1,
-            background: i < 3 ? "var(--teal)" : "var(--blue)",
+            background: i < 3 ? "var(--accent)" : "var(--faint)",
             opacity: i < 3 ? 1 : 0.55,
             height: `${(v / max) * 100}%`,
             minHeight: 1,

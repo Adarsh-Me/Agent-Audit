@@ -139,7 +139,7 @@ export default function RevenuePage() {
                   aria-invalid={!gmvValid}
                 />
                 {!gmvValid ? (
-                  <div style={{ color: "var(--rose)", fontSize: 12, marginTop: 4 }}>
+                  <div style={{ color: "var(--flag)", fontSize: 12, marginTop: 4 }}>
                     E110 — enter a GMV above ₹10,000
                   </div>
                 ) : null}
@@ -171,10 +171,10 @@ export default function RevenuePage() {
             </div>
 
             {data.recoverable_inr ? (
-              <div className="panel" style={{ borderColor: "rgba(52,211,153,0.45)" }}>
+              <div className="panel" style={{ borderColor: "rgba(61,214,140,0.45)" }}>
                 <h2>Recoverable</h2>
                 <p className="sub">Recovered if the approved fixes hold up — verified by re-run.</p>
-                <div style={{ fontSize: 28, fontWeight: 700, color: "var(--green)" }} title="95% confidence interval, persona-cluster bootstrap, B = 2,000">
+                <div style={{ fontSize: 28, fontWeight: 700, color: "var(--pos)" }} title="95% confidence interval, persona-cluster bootstrap, B = 2,000">
                   {inr(data.recoverable_inr.value)}/mo{" "}
                   <span className="ci-range" style={{ fontSize: 15 }}>
                     [{inr(data.recoverable_inr.ci_low)} – {inr(data.recoverable_inr.ci_high)}]

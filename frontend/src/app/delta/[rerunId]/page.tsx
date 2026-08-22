@@ -170,7 +170,7 @@ export default function DeltaPage() {
           <h2>Money recovered</h2>
           {delta.recoverable_inr ? (
             <>
-              <div style={{ fontSize: 26, fontWeight: 700, color: "var(--green)" }} title="95% confidence interval, persona-cluster bootstrap, B = 2,000">
+              <div style={{ fontSize: 26, fontWeight: 700, color: "var(--pos)" }} title="95% confidence interval, persona-cluster bootstrap, B = 2,000">
                 <span className="chip green" style={{ marginRight: 8 }}>Recoverable</span>
                 {inr(delta.recoverable_inr.value)}/mo{" "}
                 <span className="ci-range" style={{ fontSize: 14 }}>

@@ -140,12 +140,12 @@ export default function LandingPage() {
           <h3 style={{ margin: "0 0 10px" }}>Upload catalog</h3>
           {phase === "uploaded" && upload ? (
             <div>
-              <p className="sub" style={{ color: "var(--green)" }}>
+              <p className="sub" style={{ color: "var(--pos)" }}>
                 {upload.valid} of {upload.valid + upload.invalid.length} rows valid —
                 continue with valid rows?
               </p>
               {upload.invalid.length > 0 ? (
-                <ul style={{ margin: "0 0 10px", paddingLeft: 18, color: "var(--amber)", fontSize: 12.5 }}>
+                <ul style={{ margin: "0 0 10px", paddingLeft: 18, color: "var(--muted)", fontSize: 12.5 }}>
                   {upload.invalid.slice(0, 8).map((r: UploadInvalidRow) => (
                     <li key={`${r.row}-${r.code}`}>
                       Row {r.row}: {r.code} — {r.message}

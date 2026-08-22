@@ -33,7 +33,7 @@ export function Dial(props: {
           cy={size / 2}
           r={r}
           fill="none"
-          stroke={props.color ?? "var(--teal)"}
+          stroke={props.color ?? "var(--accent)"}
           strokeWidth={stroke}
           strokeLinecap="round"
           strokeDasharray={`${clamped * c} ${c}`}
@@ -62,7 +62,7 @@ export function ScoreDial(props: {
   label?: string;
 }) {
   const frac = Math.max(0, Math.min(1, props.score / 100));
-  const color = props.score >= 80 ? "var(--green)" : props.score >= 60 ? "var(--teal)" : "var(--amber)";
+  const color = props.score >= 80 ? "var(--pos)" : props.score >= 60 ? "var(--accent)" : "var(--muted)";
   return (
     <Dial frac={frac} size={props.size ?? 150} color={color}>
       <div style={{ paddingTop: (props.size ?? 150) * 0.18 }}>
