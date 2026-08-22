@@ -1,7 +1,11 @@
-.PHONY: dev test lint validate seed-demo serve-demo e2e demo-check db-up db-down
+.PHONY: dev test lint validate seed-demo serve-demo e2e demo-check db-up db-down live-serve
 
 dev:
 	cd backend && python -m uvicorn app.main:app --reload --port 8000
+
+# live-fire server: MUST run with backend/ as cwd ("No module named 'app'" otherwise)
+live-serve:
+	cd backend && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 
 test:
 	cd backend && python -m pytest -q

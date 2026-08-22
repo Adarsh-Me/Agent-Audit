@@ -10,6 +10,8 @@ a **human-gated remediation loop verified by re-run**, and closes with an end-to
 
 > Razorpay AI Buildathon — Track 01: AI Growth & Agentic Commerce.
 
+**Zero-key demo:** `make seed-demo && make demo-check` exercises the full pipeline — catalog → recorded run → verification chain — with **no API keys required**. Live LLM trials need only `OPENROUTER_API_KEY`; all pinned models are $0 free-tier.
+
 ---
 
 ## What it measures (and how it stays honest)
@@ -90,13 +92,14 @@ backend/app/routers/     REST API (uploads, audit, metrics, report, revenue, fix
 backend/tests/validation/ V1–V6 planted-bias suite  → make validate
 demo-store/              controlled 40-product world (generator + static site)
 mcp-server/server.mjs    stdio MCP server: audit_status / get_report / create_payment_link
-Docs/                    PRD · TECHSPEC · SCHEMA · APPFLOW · IMPLEMENTATIONPLAN · BUILDLOG
+Docs/                    PRD · TECHSPEC · SCHEMA · APPFLOW · SUMMARY · DESIGN · BUILDLOG
+SAFETY.md                money-action bounds: spend cap, SKU whitelist, test-mode-only
 ```
 
 ## Engineering gates
 
 ```bash
-make test         # 73 unit/integration tests
+make test         # 90 unit/integration tests
 make validate     # V1–V6 planted-bias suite (CI-gated)
 make seed-demo    # rebuild demo fixture + load into DB
 make demo-check   # verify manifest numbers vs database (G12)
@@ -104,10 +107,18 @@ make demo-check   # verify manifest numbers vs database (G12)
 
 ## Recorded demo numbers
 
-Headline figures quoted in the demo are from one recorded run against the committed fixture;
+Headline figures quoted in the demo come from one recorded run against the committed fixture;
 provenance lives in [`demo/manifest.json`](demo/manifest.json) (models+versions, seeds, cost,
-git sha, prompt-hash sample) and is re-verifiable via `make demo-check`. See
+git sha, prompt-hash sample) and is re-verifiable via `make demo-check`. The current committed
+manifest is self-labeled `mock-deterministic` (a scripted provider that proves the
+determinism chain); it is regenerated from a live pinned-model OpenRouter run before any
+external citation of those numbers — see [`Docs/SUMMARY.md`](Docs/SUMMARY.md) §7 for the full
+provenance table including the completed live runs. See
 [`Docs/BUILDLOG.md`](Docs/BUILDLOG.md) for the day-by-day engineering log.
+
+## Detailed summary
+
+→ **Full narrative + technical deep dive:** [`Docs/SUMMARY.md`](Docs/SUMMARY.md) — idea, real problem, uniqueness, 9-step pipeline, tech stack, proof & limits (tone A+B).
 
 ## Known limitations (honest ones)
 
