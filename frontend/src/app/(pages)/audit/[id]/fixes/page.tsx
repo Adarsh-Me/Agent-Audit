@@ -38,7 +38,7 @@ function StatusBadge({ status }: { status: RemediationRow['status'] }) {
     pending: 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400'
   }
   return (
-    <Badge variant='outline' className={cn('h-5 text-[11px]', map[status])}>
+    <Badge variant='outline' className={cn('h-5 text-xs', map[status])}>
       {status}
     </Badge>
   )
@@ -183,7 +183,7 @@ export default function FixesPage() {
         <Badge
           variant='outline'
           className={cn(
-            'h-5 text-[11px]',
+            'h-5 text-xs',
             allReviewed
               ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
               : 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400'
@@ -244,7 +244,7 @@ export default function FixesPage() {
                 <Separator />
                 {row.fixes.map((fix, i) => (
                   <div key={`${row.id}-${i}`} className='flex flex-col gap-1.5'>
-                    <div className='text-muted-foreground font-mono text-[11px] uppercase'>
+                    <div className='text-muted-foreground font-mono text-xs uppercase'>
                       {fix.field}
                     </div>
                     <div className='grid gap-2 md:grid-cols-2'>

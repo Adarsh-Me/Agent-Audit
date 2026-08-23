@@ -278,7 +278,7 @@ export default function ResultsPage() {
                 aria-label='agent-traffic share'
                 className='w-32 accent-[var(--primary)]'
               />
-              <span className='text-muted-foreground/70 font-mono text-[11px]'>
+              <span className='text-muted-foreground/70 font-mono text-xs'>
                 1% · 5% · 10% · 20%
               </span>
             </span>
@@ -330,7 +330,7 @@ export default function ResultsPage() {
                         >
                           <BarTrack value={Math.min(1, inv.share.value * 8)} tone='rose' style={{ width: 56 }} />
                           {pct(inv.share.value)}{' '}
-                          <span className='text-muted-foreground font-mono text-[11px]'>
+                          <span className='text-muted-foreground font-mono text-xs'>
                             [{pct(inv.share.ci_low)} – {pct(inv.share.ci_high)}]
                           </span>
                         </span>
@@ -341,7 +341,7 @@ export default function ResultsPage() {
                     <TableCell>
                       <div className='flex items-center gap-2'>
                         <BarTrack value={comp} style={{ width: 64 }} />
-                        <span className='text-muted-foreground font-mono text-[11px]'>
+                        <span className='text-muted-foreground font-mono text-xs'>
                           {row.composite !== null ? num2(comp) : 'n/a'}
                         </span>
                       </div>
@@ -358,7 +358,7 @@ export default function ResultsPage() {
               })}
             </TableBody>
           </Table>
-          <p className='text-muted-foreground/70 mt-3 text-[11px]'>
+          <p className='text-muted-foreground/70 mt-3 text-xs'>
             Invisible = 95% CI upper bound below 2.5% fair share · demand share renders where the API
             reports it (invisible SKUs) · metric: hhi_norm
             {report.partial ? ` · computed on ${report.trials.total}/640 trials` : ''}
@@ -474,7 +474,7 @@ export default function ResultsPage() {
           </CardHeader>
           <CardContent className='flex flex-col gap-3'>
             <StabilityMatrix matrix={report.stability.matrix} />
-            <p className='text-muted-foreground/70 text-[11px]'>
+            <p className='text-muted-foreground/70 text-xs'>
               aligned &gt; 0.8 · moderate 0.5–0.8 · divergent &lt; 0.5 · metric: stability.mean
             </p>
           </CardContent>
@@ -491,7 +491,7 @@ export default function ResultsPage() {
           <CardContent className='flex flex-col gap-3'>
             <div className='grid grid-cols-3 gap-2 text-sm'>
               <div>
-                <div className='text-muted-foreground text-[11px] uppercase'>Top-3 capture</div>
+                <div className='text-muted-foreground text-xs uppercase'>Top-3 capture</div>
                 <Ci
                   v={report.position.top3_capture.value}
                   lo={report.position.top3_capture.ci_low}
@@ -501,11 +501,11 @@ export default function ResultsPage() {
                 />
               </div>
               <div>
-                <div className='text-muted-foreground text-[11px] uppercase'>Lift vs chance</div>
+                <div className='text-muted-foreground text-xs uppercase'>Lift vs chance</div>
                 <div className='tabular-nums'>{num1(report.position.lift)}×</div>
               </div>
               <div>
-                <div className='text-muted-foreground text-[11px] uppercase'>Permutation p</div>
+                <div className='text-muted-foreground text-xs uppercase'>Permutation p</div>
                 <div className='tabular-nums'>
                   {report.position.p_value < 0.001
                     ? '< 0.001'
@@ -514,7 +514,7 @@ export default function ResultsPage() {
               </div>
             </div>
             <SlotChart perSlot={report.position.per_slot} />
-            <p className='text-muted-foreground/70 text-[11px]'>
+            <p className='text-muted-foreground/70 text-xs'>
               dashed line = 2.5% fair share per slot · metric: position.top3_capture
             </p>
           </CardContent>

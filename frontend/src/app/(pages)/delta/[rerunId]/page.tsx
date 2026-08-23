@@ -106,7 +106,7 @@ export default function DeltaPage() {
         </h1>
         <Badge
           variant='outline'
-          className='h-5 border-sky-500/30 bg-sky-500/10 text-[11px] text-sky-600 dark:text-sky-400'
+          className='h-5 border-sky-500/30 bg-sky-500/10 text-xs text-sky-600 dark:text-sky-400'
         >
           verified re-run
         </Badge>
@@ -276,7 +276,7 @@ export default function DeltaPage() {
               })}
             </TableBody>
           </Table>
-          <p className='text-muted-foreground/70 mt-3 text-[11px]'>
+          <p className='text-muted-foreground/70 mt-3 text-xs'>
             shares are pooled across models/conditions
             {delta.per_sku_changes.length >= 15 ? ' · top 15 shown' : ''}
           </p>

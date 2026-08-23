@@ -19,7 +19,7 @@ const PagesLayout = ({ children }: Readonly<{ children: ReactNode }>) => {
       </Suspense>
       <SidebarInset className='flex flex-1 flex-col'>
         <Header />
-        <main className='mx-auto size-full max-w-360 flex-1 px-4 py-6 sm:px-6'>{children}</main>
+        <main className='mx-auto size-full max-w-360 flex-1 px-4 py-8 sm:px-8'>{children}</main>
         <Toaster />
         <Footer />
       </SidebarInset>

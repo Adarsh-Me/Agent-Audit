@@ -144,7 +144,7 @@ export default function RevenuePage() {
                   onChange={e => setSliderIdx(Number(e.target.value))}
                   className='w-full max-w-sm accent-[var(--primary)]'
                 />
-                <div className='text-muted-foreground/70 mt-1 flex max-w-sm justify-between font-mono text-[11px]'>
+                <div className='text-muted-foreground/70 mt-1 flex max-w-sm justify-between font-mono text-xs'>
                   {SLIDER_VALUES.map(v => (
                     <span key={v}>{(v * 100).toFixed(0)}%</span>
                   ))}

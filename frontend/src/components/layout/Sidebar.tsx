@@ -17,7 +17,6 @@ import { ChevronRightIcon, SquareArrowOutUpRightIcon } from 'lucide-react'
 import type { MenuGroupSubItem, MenuItem, MenuLeafSubItem, MenuSubItem, NavItem } from '@/configs/navConfig'
 
 // Component Imports
-import LogoSvg from '@/assets/svg/logo'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import {
   DropdownMenu,
@@ -552,33 +551,39 @@ const SidebarLayout = () => {
           <SidebarMenuItem>
             <SidebarMenuButton
               size='lg'
-              className='gap-2.5 bg-transparent! [&>svg]:size-8'
+              className='gap-3 bg-transparent! px-2'
               render={<Link href={`${themeConfig.homePageUrl}`} />}
             >
-              <LogoSvg className='[&_rect]:fill-sidebar [&_rect:first-child]:fill-primary' />
-              <div className='flex flex-col items-start'>
-                <span className='text-lg font-semibold text-nowrap'>{themeConfig.templateName}</span>
-                <span className='text-xs font-light text-nowrap'>{themeConfig.templateSubtitle}</span>
+              <span className='bg-primary/15 text-primary flex size-8 shrink-0 items-center justify-center rounded-lg border border-primary/25'>
+                <Icon.ScanSearchIcon className='size-4' />
+              </span>
+              <div className='flex flex-col items-start gap-0.5'>
+                <span className='text-lg leading-none font-semibold text-nowrap'>{themeConfig.templateName}</span>
+                <span className='text-muted-foreground text-[11px] leading-none font-light text-nowrap'>
+                  {themeConfig.templateSubtitle}
+                </span>
               </div>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent className='group-data-[collapsible=icon]:overflow-y-auto'>
-        {navGroups.map((navItem, index) => {
-          return (
-            <SidebarGroupedMenuItems
-              key={navItem.groupLabel || index}
-              data={navItem.items}
-              groupLabel={navItem.groupLabel}
-              pathname={pathname}
-              searchParams={searchParams}
-              isIconMode={isIconMode}
-              isBranchOpen={isBranchOpen}
-              setOpenItem={setOpenItem}
-            />
-          )
-        })}
+        <div className='flex flex-col gap-4 pb-4'>
+          {navGroups.map((navItem, index) => {
+            return (
+              <SidebarGroupedMenuItems
+                key={navItem.groupLabel || index}
+                data={navItem.items}
+                groupLabel={navItem.groupLabel}
+                pathname={pathname}
+                searchParams={searchParams}
+                isIconMode={isIconMode}
+                isBranchOpen={isBranchOpen}
+                setOpenItem={setOpenItem}
+              />
+            )
+          })}
+        </div>
       </SidebarContent>
     </Sidebar>
   )

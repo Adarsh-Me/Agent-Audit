@@ -259,7 +259,7 @@ export default function CheckoutPage() {
                     Chosen by agent
                   </div>
                   <div className='mt-1 text-base font-semibold'>{product.title}</div>
-                  <div className='text-muted-foreground font-mono text-[11px]'>
+                  <div className='text-muted-foreground font-mono text-xs'>
                     {product.id} · tier: {product.tier}
                   </div>
                   <div className='mt-2 text-2xl font-semibold tabular-nums'>
@@ -273,14 +273,14 @@ export default function CheckoutPage() {
                     Pay {inr(product.price_inr)} (test mode)
                   </Button>
                   {phase === 'running' ? (
-                    <Badge variant='outline' className='text-[11px]'>
+                    <Badge variant='outline' className='text-xs'>
                       creating link…
                     </Badge>
                   ) : null}
                   {phase === 'link_ready' ? (
                     <Badge
                       variant='outline'
-                      className='border-sky-500/30 bg-sky-500/10 text-[11px] text-sky-600 dark:text-sky-400'
+                      className='border-sky-500/30 bg-sky-500/10 text-xs text-sky-600 dark:text-sky-400'
                     >
                       awaiting payment — complete the test payment
                     </Badge>
@@ -300,7 +300,7 @@ export default function CheckoutPage() {
                   </div>
                 ) : null}
 
-                <p className='text-muted-foreground/70 text-[11px]'>
+                <p className='text-muted-foreground/70 text-xs'>
                   Target: capture confirmed within ~5 s of payment. Test-mode Razorpay link — no real
                   money moves. Money-action bounds: ₹2,000 cap · SKU whitelist · test-mode-only.
                 </p>

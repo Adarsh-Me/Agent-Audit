@@ -98,40 +98,40 @@ export default function LandingPage() {
   }
 
   return (
-    <div className='flex flex-col gap-6'>
+    <div className='flex flex-col gap-8'>
       {/* ---------- hero ---------- */}
-      <section className='rounded-xl border bg-gradient-to-b from-primary/8 to-transparent p-8'>
-        <Badge variant='outline' className='mb-4'>
+      <section className='rounded-xl border bg-gradient-to-b from-primary/10 via-primary/5 to-transparent px-8 py-12'>
+        <Badge variant='outline' className='border-primary/30 bg-primary/10 mb-6 h-6 px-2.5 text-xs text-[oklch(0.78_0.12_258)]'>
           <FlaskConicalIcon data-icon='inline-start' />
           640 randomized controlled trials · real LLM agents
         </Badge>
-        <h1 className='text-3xl font-semibold tracking-tight text-balance sm:text-4xl'>
+        <h1 className='max-w-3xl text-3xl leading-tight font-semibold tracking-tight text-balance sm:text-4xl'>
           Can AI shopping agents actually buy from you?
         </h1>
-        <p className='text-muted-foreground mt-3 max-w-2xl text-base text-pretty'>
+        <p className='text-muted-foreground mt-5 max-w-2xl text-base leading-relaxed text-pretty'>
           AgentAudit runs 640 controlled agent trials across your catalog and measures whether AI
           shoppers can see your products, choose them fairly, and carry a purchase through to
           payment.
         </p>
-        <p className='text-muted-foreground/80 mt-2 max-w-2xl text-sm'>
+        <p className='text-muted-foreground mt-3 max-w-2xl text-sm leading-relaxed'>
           Merchants have SEO for Google&rsquo;s crawler. This is the equivalent check for the agents
           now choosing products on your customers&rsquo; behalf.
         </p>
-        <div className='mt-6 flex flex-wrap items-center gap-4'>
+        <div className='mt-8 flex flex-wrap items-center gap-4'>
           <Button size='lg' onClick={startDemo} disabled={phase === 'starting'}>
             {phase === 'starting' ? 'Queuing…' : 'Run the demo audit'}
             <ArrowRightIcon data-icon='inline-end' />
           </Button>
-          <span className='text-muted-foreground/80 font-mono text-xs'>
+          <span className='text-muted-foreground font-mono text-xs'>
             ~2–15 min · $0 on pinned free models · hard cap $30/run
           </span>
         </div>
         {lastRun ? (
-          <p className='text-muted-foreground mt-4 text-sm'>
+          <p className='text-muted-foreground mt-5 text-sm'>
             Resume last run{' '}
             <Link
               href={`/audit/${lastRun}/results`}
-              className='text-primary font-mono text-xs underline-offset-4 hover:underline'
+              className='text-primary font-mono text-xs underline underline-offset-4 hover:underline'
             >
               {lastRun.slice(0, 8)} →
             </Link>
@@ -149,13 +149,13 @@ export default function LandingPage() {
 
       {/* ---------- source cards ---------- */}
       <div className='grid gap-4 md:grid-cols-2'>
-        <Card className='border-primary/40'>
+        <Card className='border-primary/40 transition-colors'>
           <CardHeader>
             <div className='flex items-center gap-2'>
               <CardTitle>Demo Store</CardTitle>
-              <Badge className='h-5 text-[11px]'>RECOMMENDED</Badge>
+              <Badge className='h-5 text-xs'>RECOMMENDED</Badge>
             </div>
-            <CardDescription>
+            <CardDescription className='leading-relaxed'>
               40 products · 4 categories · controlled data-quality tiers (rich / medium / starved).
               The fastest way to see every screen with real measured numbers.
             </CardDescription>
@@ -165,7 +165,7 @@ export default function LandingPage() {
         <Card>
           <CardHeader>
             <CardTitle>Upload catalog</CardTitle>
-            <CardDescription>
+            <CardDescription className='leading-relaxed'>
               5–500 rows, JSON or CSV, ≤5 MB — per-row validation errors are shown before anything
               runs.
             </CardDescription>
@@ -208,7 +208,7 @@ export default function LandingPage() {
                 role='button'
                 tabIndex={0}
                 className={cn(
-                  'text-muted-foreground hover:border-primary/50 hover:bg-muted/50 flex cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed py-8 text-sm transition-colors',
+                  'text-muted-foreground hover:border-primary/50 hover:bg-muted/50 flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed py-10 text-sm transition-colors',
                   dragOver && 'border-primary bg-primary/5'
                 )}
                 onClick={() => fileInput.current?.click()}
@@ -234,7 +234,7 @@ export default function LandingPage() {
                   <>
                     Drag &amp; drop a <code className='font-mono text-xs'>.json</code> or{' '}
                     <code className='font-mono text-xs'>.csv</code> catalog here
-                    <span className='text-[11px] opacity-70'>
+                    <span className='text-xs opacity-70'>
                       click to browse · nothing runs until you approve
                     </span>
                   </>
