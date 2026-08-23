@@ -43,9 +43,21 @@ function Button({
   className,
   variant = 'default',
   size = 'default',
+  nativeButton,
+  render,
   ...props
 }: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
-  return <ButtonPrimitive data-slot='button' className={cn(buttonVariants({ variant, size, className }))} {...props} />
+  // `render={<Link/>}` swaps the element to an <a>; Base UI must stop assuming
+  // a native <button> or it warns and drops button semantics.
+  return (
+    <ButtonPrimitive
+      data-slot='button'
+      nativeButton={nativeButton ?? (render ? false : undefined)}
+      className={cn(buttonVariants({ variant, size, className }))}
+      render={render}
+      {...props}
+    />
+  )
 }
 
 export { Button, buttonVariants }
