@@ -283,12 +283,15 @@ class Runner:
                     await s2.commit()
         except ProviderError as exc:
             status, abort_reason = "partial", f"circuit_breaker: {exc}"
+        except Exception as exc:  # noqa: BLE001 — any engine crash becomes a labeled failure
+            status, abort_reason = "failed", f"engine_error: {type(exc).__name__}: {exc}"
 
         async with self.session_factory() as s3:
             run = await s3.get(Run, run_id)
             assert run
             run.status = status
             run.cost_usd = round(ledger.total_usd, 4)
+            run.abort_reason = abort_reason
             run.completed_at = datetime.now(timezone.utc)
             await s3.commit()
         await emit({"type": "complete", "run_id": run_id, "status": status,

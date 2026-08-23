@@ -36,6 +36,7 @@ import {
 } from '@/lib/api'
 import { getLastRun, rememberRun } from '@/lib/runs'
 import { ErrorBox } from '@/components/agentaudit/bits'
+import { RunsDashboard } from '@/components/agentaudit/RunsDashboard'
 
 type Phase = 'idle' | 'uploading' | 'uploaded' | 'starting'
 
@@ -281,6 +282,9 @@ export default function LandingPage() {
             })
         }}
       />
+
+      {/* ---------- recent runs dashboard ---------- */}
+      <RunsDashboard />
 
       {/* ---------- honesty strip ---------- */}
       <Alert>

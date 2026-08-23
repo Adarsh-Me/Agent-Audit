@@ -109,6 +109,7 @@ class Run(Base):
     seeds: Mapped[dict] = mapped_column(JSONType())  # §3.4 snapshot
     cost_usd: Mapped[float] = mapped_column(Float, default=0.0)
     trials_total: Mapped[int] = mapped_column(Integer, default=640)  # SC-6
+    abort_reason: Mapped[str | None] = mapped_column(Text)  # partial/failed cause, human-readable
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 

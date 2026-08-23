@@ -43,6 +43,7 @@ CREATE TABLE runs (
   seeds         JSONB NOT NULL,        -- §3.4 snapshot
   cost_usd      REAL NOT NULL DEFAULT 0,
   trials_total  INTEGER NOT NULL DEFAULT 640,                                       -- SC-6
+  abort_reason  TEXT,                -- human-readable partial/failed cause
   started_at    TIMESTAMPTZ,
   completed_at  TIMESTAMPTZ
 );

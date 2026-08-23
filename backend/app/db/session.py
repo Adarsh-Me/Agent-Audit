@@ -31,3 +31,12 @@ async def init_db() -> None:
 
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+        # create_all cannot ALTER pre-existing tables — bring older DBs up to
+        # date column-by-column (duplicate-column errors are expected no-ops)
+        from sqlalchemy import text
+
+        async with engine.begin() as conn:
+            try:
+                await conn.execute(text("ALTER TABLE runs ADD COLUMN abort_reason TEXT"))
+            except Exception:  # noqa: BLE001 — column already exists
+                pass

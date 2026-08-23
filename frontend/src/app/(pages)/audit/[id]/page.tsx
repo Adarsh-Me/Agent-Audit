@@ -30,6 +30,9 @@ const PARTIAL_BANNER =
   'Partial run — cost cap hit. Numbers below are real but incomplete.'
 const MAX_SSE_FAILURES = 3
 const POLL_MS = 3000
+/** No recorded progress for this long while "running" ⇒ the engine task is
+ * gone (server restart) or wedged — surface it instead of spinning forever. */
+const STALL_AFTER_MS = 120_000
 
 export default function ProgressPage() {
   const params = useParams<{ id: string }>()
@@ -45,9 +48,11 @@ export default function ProgressPage() {
   const [transport, setTransport] = useState<'sse' | 'polling'>('sse')
   const [error, setError] = useState<{ code: string; message: string } | null>(null)
   const [elapsed, setElapsed] = useState(0)
+  const [stalled, setStalled] = useState(false)
 
   const startedAtRef = useRef<number>(Date.now())
   const navigatedRef = useRef(false)
+  const lastProgressRef = useRef<number>(Date.now())
 
   const finishToResults = useCallback(
     (finalStatus: AuditStatusResponse['status']) => {
@@ -105,7 +110,13 @@ export default function ProgressPage() {
       const tick = async () => {
         try {
           const s = await getAudit(runId)
-          setDone(s.trials_done)
+          setDone(prev => {
+            if (s.trials_done > prev) {
+              lastProgressRef.current = Date.now()
+              setStalled(false)
+            }
+            return s.trials_done
+          })
           setTotal(s.trials_total ?? 640)
           setCostUsd(s.cost_usd)
           setEtaS(s.eta_s)
@@ -132,6 +143,8 @@ export default function ProgressPage() {
           setTotal(d.total)
           setCostUsd(d.cost_usd)
           setEtaS(Math.max(0, d.total - d.done) * 0.35)
+          lastProgressRef.current = Date.now()
+          setStalled(false)
         } catch {
           /* malformed event ignored */
         }
@@ -177,13 +190,13 @@ export default function ProgressPage() {
     }
   }, [runId, status, finishToResults])
 
-  // elapsed timer
+  // elapsed timer + stall watcher
   useEffect(() => {
     if (status !== 'running' && status !== 'queued') return
-    const t = window.setInterval(
-      () => setElapsed(Math.floor((Date.now() - startedAtRef.current) / 1000)),
-      1000
-    )
+    const t = window.setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startedAtRef.current) / 1000))
+      if (Date.now() - lastProgressRef.current > STALL_AFTER_MS) setStalled(true)
+    }, 1000)
     return () => window.clearInterval(t)
   }, [status])
 
@@ -204,6 +217,16 @@ export default function ProgressPage() {
       {status === 'partial' ? (
         <div className='rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-400'>
           {PARTIAL_BANNER}
+        </div>
+      ) : null}
+      {stalled && (status === 'running' || status === 'queued') ? (
+        <div className='rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-400'>
+          <strong>No progress for {Math.round(STALL_AFTER_MS / 1000)}s — the engine task may have been
+          interrupted</strong> (server restart or provider outage). {done} trials are recorded and
+          auditable.{' '}
+          <Link href={`/audit/${runId}/results`} className='underline underline-offset-4'>
+            View the data audited so far →
+          </Link>
         </div>
       ) : null}
       {status === 'failed' ? (

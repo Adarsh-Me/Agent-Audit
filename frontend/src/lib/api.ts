@@ -87,7 +87,8 @@ export interface AuditStatusResponse {
   cost_usd: number;
   eta_s: number;
   parent_run_id: string | null;
-  type: "audit" | "rerun";
+  type: 'audit' | 'rerun';
+  abort_reason?: string | null;
 }
 
 export interface TrialTotals {
@@ -338,6 +339,41 @@ export function importStore(input: {
     method: "POST",
     body: JSON.stringify(input),
   });
+}
+
+/* ------------------------------------------------ runs dashboard */
+
+export interface RunSummaryRow {
+  run_id: string;
+  type: "audit" | "rerun";
+  status: RunStatus;
+  abort_reason: string | null;
+  cost_usd: number;
+  trials_total: number;
+  trials_recorded: number;
+  started_at: string | null;
+  completed_at: string | null;
+  parent_run_id: string | null;
+  catalog: {
+    id: string;
+    source: CatalogSource | null;
+    merchant: string | null;
+    products: number | null;
+  };
+  fixes_needed: number;
+  summary: {
+    score: number;
+    f_task: number;
+    top3_capture: number;
+    parse_ok: number;
+    models: Record<string, { attempts: number; parse_ok: number }>;
+    note: string;
+  } | null;
+}
+
+/** GET /api/runs — recent-run outcomes with failure reasons and mid-data summaries. */
+export function listRuns(limit = 10): Promise<{ runs: RunSummaryRow[] }> {
+  return request<{ runs: RunSummaryRow[] }>(`/api/runs?limit=${limit}`);
 }
 
 /* -------------------------------------------------------------- SSE events */

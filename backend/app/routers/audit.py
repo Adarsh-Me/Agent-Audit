@@ -126,6 +126,7 @@ async def get_audit(run_id: str, session: AsyncSession = Depends(get_session)) -
         "eta_s": eta_s,
         "parent_run_id": run.parent_run_id,
         "type": run.type,
+        "abort_reason": getattr(run, "abort_reason", None),
     }
 
 

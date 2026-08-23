@@ -16,6 +16,7 @@ from app.routers import delta as delta_router
 from app.routers import payments as payments_router
 from app.routers import remediations as remediations_router
 from app.routers import report as report_router
+from app.routers import runs as runs_router
 from app.routers import stores as stores_router
 from app.routers import stream as stream_router
 from app.routers import uploads as uploads_router
@@ -24,7 +25,43 @@ from app.routers import uploads as uploads_router
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     await init_db()
+    await _reap_orphaned_runs()
     yield
+
+
+async def _reap_orphaned_runs() -> None:
+    """Engine tasks live inside this process; a restart (or crash) kills them
+    silently and used to leave run rows stuck at 'running' forever. Any run
+    still queued/running at boot belongs to a dead engine — mark it failed
+    with an honest reason. Trials already persisted stay queryable (mid-data)."""
+    from datetime import datetime, timezone
+
+    from sqlalchemy import select, update
+
+    from app.db.models import Run
+    from app.db.session import get_sessionmaker
+
+    maker = get_sessionmaker()
+    async with maker() as session:
+        orphans = (await session.execute(
+            select(Run.id).where(Run.status.in_(("queued", "running")))
+        )).scalars().all()
+        if not orphans:
+            return
+        await session.execute(
+            update(Run)
+            .where(Run.id.in_(orphans))
+            .values(
+                status="failed",
+                abort_reason=(
+                    "engine_lost: the server restarted mid-run — recorded trials are "
+                    "preserved and auditable below"
+                ),
+                completed_at=datetime.now(timezone.utc),
+            )
+        )
+        await session.commit()
+    print(f"[reaper] marked {len(orphans)} orphaned run(s) failed (engine_lost)")
 
 
 app = FastAPI(title="AgentAudit", version="0.1.0", lifespan=lifespan)
@@ -69,6 +106,7 @@ async def app_error_handler(_: Request, exc: AppError) -> JSONResponse:
 app.include_router(catalog_router.router)
 app.include_router(uploads_router.router)
 app.include_router(stores_router.router)
+app.include_router(runs_router.router)
 app.include_router(audit_router.router)
 app.include_router(report_router.router)
 app.include_router(stream_router.router)

@@ -58,6 +58,7 @@ export default function ResultsPage() {
   const runId = params.id
 
   const [status, setStatus] = useState<AuditStatusResponse['status'] | 'loading'>('loading')
+  const [abortReason, setAbortReason] = useState<string | null>(null)
   const [report, setReport] = useState<ReportResponse | null>(null)
   const [preview, setPreview] = useState<RevenueResponse | null>(null)
   const [recoverable, setRecoverable] = useState<RevenueResponse['recoverable_inr']>(null)
@@ -70,20 +71,28 @@ export default function ResultsPage() {
 
     async function load() {
       try {
-        // wait for a terminal status before pulling computed metrics
+        // wait for a terminal status before pulling computed metrics — but
+        // break out if the run stops making progress (engine lost/stalled)
+        // so recorded mid-data still renders
         let st: AuditStatusResponse
+        let lastDone = -1
+        let stalePolls = 0
         for (;;) {
           st = await getAudit(runId)
           if (!alive) return
           if (st.status === 'done' || st.status === 'partial' || st.status === 'failed') break
+          if (st.trials_done === lastDone) stalePolls += 1
+          else stalePolls = 0
+          lastDone = st.trials_done
+          if (stalePolls >= 45) break // ~90 s with zero new trials
           await new Promise(r => setTimeout(r, 2000))
         }
         if (!alive) return
-        if (st.status === 'failed') {
-          setStatus('failed')
-          return
-        }
         setStatus(st.status)
+        setAbortReason(st.abort_reason ?? null)
+        if (st.status === 'failed' && st.trials_done === 0) {
+          return // nothing was measured — the banner says it all
+        }
         const rep = await getReport(runId)
         if (!alive) return
         setReport(rep)
@@ -144,10 +153,12 @@ export default function ResultsPage() {
     )
   }
 
-  if (status === 'failed') {
+  if (status === 'failed' && !report) {
     return (
       <div className='rounded-lg border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-700 dark:text-rose-400'>
-        This run failed. <Link href='/' className='underline underline-offset-4'>Start a new audit</Link>.
+        This run failed before any trial was recorded.{' '}
+        {abortReason ? <span className='block pt-1'>Reason: {abortReason}</span> : null}{' '}
+        <Link href='/' className='underline underline-offset-4'>Start a new audit</Link>.
       </div>
     )
   }
@@ -174,6 +185,15 @@ export default function ResultsPage() {
       {report.partial || status === 'partial' ? (
         <div className='rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-400'>
           {PARTIAL_BANNER}
+        </div>
+      ) : null}
+
+      {status === 'failed' ? (
+        <div className='rounded-lg border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-700 dark:text-rose-400'>
+          <strong>This run failed partway — the numbers below are the {report.trials.total}{' '}
+          trials recorded before the stop.</strong>{' '}
+          {abortReason ? <span>Reason: {abortReason}.</span> : null} Every figure is computed
+          only from recorded trials and carries its interval.
         </div>
       ) : null}
 
