@@ -172,3 +172,13 @@ async def test_payment_link_endpoint_and_status(db_env, monkeypatch):
             assert r6.status_code == 200
     finally:
         app.dependency_overrides.clear()
+
+
+async def test_reference_id_capped_at_40_chars():
+    from app.routers.payments import _razorpay_ref
+    idem = 'agentaudit:6b3fd1ea-aafd-4827-91bb-a701c237891d:sku_007'
+    assert len(idem) > 40  # the live-fire bug: composite key exceeds Razorpay limit
+    ref = _razorpay_ref(idem)
+    assert len(ref) <= 40
+    assert ref == _razorpay_ref(idem)  # deterministic across replays
+    assert ref != _razorpay_ref(idem + ':x')  # distinct per (run, sku)

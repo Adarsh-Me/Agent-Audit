@@ -9,6 +9,8 @@ POST /api/webhooks/razorpay          HMAC-verified, deduped via webhook_events
 """
 from __future__ import annotations
 
+import hashlib
+
 from fastapi import APIRouter, Depends, Request, Response
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -23,6 +25,14 @@ from app.errors import AppError
 from app.razorpay.client import RazorpayClient, RazorpayError
 
 router = APIRouter()
+
+
+def _razorpay_ref(idem: str) -> str:
+    """Razorpay caps reference_id (and idempotency keys) at 40 chars; our composite
+    `agentaudit:<uuid>:<sku>` runs ~55. Hash it deterministically — the FULL key is
+    what we store and replay on (Payment.idempotency_key); the hash only rides on
+    the wire. Webhooks correlate via razorpay_link_id, never via reference_id."""
+    return "aa:" + hashlib.sha256(idem.encode()).hexdigest()[:32]
 
 
 class LinkRequest(BaseModel):
@@ -108,10 +118,18 @@ async def create_link(body: LinkRequest,
     try:
         link = await rp.create_payment_link(
             amount_inr=product.price_inr,
-            reference_id=idem,
+            reference_id=_razorpay_ref(idem),
             description=f"AgentAudit checkout proof — {product.title}",
-            idempotency_key=idem,
+            idempotency_key=_razorpay_ref(idem),
         )
+    except RazorpayError as exc:
+        raise AppError("E502", f"razorpay rejected payment link: {exc}",
+                       status_code=502,
+                       details={"policy": "provider_rejection"}) from exc
+    except httpx.HTTPError as exc:
+        raise AppError("E502", f"razorpay unreachable: {exc}",
+                       status_code=502,
+                       details={"policy": "provider_unreachable"}) from exc
     finally:
         await rp.aclose()
 
@@ -135,6 +153,33 @@ async def payment_status(run_id: str,
         .scalars()
         .all()
     )
+
+    # Active truth-fetch fallback (SAFETY.md "webhook-timeout→poll"): webhooks need a
+    # public URL, so on a plain local machine nothing would ever flip to captured.
+    # When the caller asks, we ask RAZORPAY directly for any link still pending and
+    # adopt its state — same source of truth the webhook would have delivered.
+    s = get_settings()
+    if rows and str(s.razorpay_key_id or "").startswith("rzp_test_"):
+        rp = _client()
+        try:
+            for p in rows:
+                if p.status == "captured":
+                    continue
+                try:
+                    link = await rp.fetch_payment_link(p.razorpay_link_id)
+                except (RazorpayError, httpx.HTTPError):
+                    continue  # unreachable / not found — keep DB state honestly
+                from datetime import datetime, timezone
+
+                if link.status == "paid":
+                    p.status = "captured"
+                    p.captured_at = p.captured_at or datetime.now(timezone.utc)
+                elif link.status == "failed" and p.status != "failed":
+                    p.status = "failed"
+        finally:
+            await rp.aclose()
+        await session.commit()
+
     latest = rows[0] if rows else None
     return {
         "run_id": run_id,
