@@ -1,7 +1,10 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
+import { ChevronDown } from 'lucide-react'
 
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
@@ -26,14 +29,71 @@ import {
   TableRow
 } from '@/components/ui/table'
 import { ErrorBox, PanelSkeleton, StatCard, TierChip } from '@/components/agentaudit/bits'
-import { ApiError, getCatalog, type CatalogResponse } from '@/lib/api'
+import {
+  ApiError,
+  getCatalog,
+  getEvidence,
+  type CatalogResponse,
+  type EvidenceResponse
+} from '@/lib/api'
 import { inr } from '@/lib/format'
+import { getLastRun } from '@/lib/runs'
+
+interface CheckItem {
+  label: string
+  ok: boolean
+  fix?: string
+}
+
+/** Legibility checklist per impl-plan §3.4, fix order: JSON-LD → price → title → description → availability */
+function checklistFor(p: CatalogResponse['products'][number]): CheckItem[] {
+  const sd = (p.structured_data ?? {}) as Record<string, unknown>
+  const fields = Array.isArray(sd.fields_present)
+    ? (sd.fields_present as string[]).map(f => String(f).toLowerCase())
+    : []
+  return [
+    {
+      label: 'JSON-LD Product schema',
+      ok: sd.jsonld_present === true,
+      fix: 'Add JSON-LD Product schema so parsers can read the listing'
+    },
+    {
+      label: 'Machine-readable price',
+      ok: fields.includes('price') || sd.price_fresh === true,
+      fix: 'Expose the price in structured data — agents skip unverifiable prices'
+    },
+    { label: 'Descriptive title', ok: p.title.trim().length > 8 },
+    {
+      label: 'Substantive description',
+      ok: (p.description ?? '').trim().length > 60,
+      fix: 'Expand the description — thin copy loses tie-breaker comparisons'
+    },
+    {
+      label: 'Availability stated',
+      ok: fields.includes('availability'),
+      fix: 'Declare stock status (InStock / OutOfStock) in the feed'
+    }
+  ]
+}
+
+function Quote({ q }: { q: { model: string; persona_id: string; text: string } }) {
+  return (
+    <blockquote className='border-l-2 border-primary/40 pl-3'>
+      <p className='text-sm italic'>&ldquo;{q.text}&rdquo;</p>
+      <footer className='text-muted-foreground mt-1 font-mono text-[11px]'>
+        {q.model} · {q.persona_id}
+      </footer>
+    </blockquote>
+  )
+}
 
 export default function CatalogPage() {
   const [data, setData] = useState<CatalogResponse | null>(null)
   const [error, setError] = useState<{ code: string; message: string } | null>(null)
   const [query, setQuery] = useState('')
   const [tier, setTier] = useState<string>('all')
+  const [openSku, setOpenSku] = useState<string | null>(null)
+  const [evidence, setEvidence] = useState<EvidenceResponse | null>(null)
 
   useEffect(() => {
     let alive = true
@@ -47,6 +107,19 @@ export default function CatalogPage() {
         if (err instanceof ApiError) setError({ code: err.code, message: err.message })
         else setError({ code: 'E-UNK', message: 'Failed to load catalog.' })
       })
+
+    // Agent Evidence binds to the most recent run — absent silently until one exists
+    const runId = getLastRun()
+    if (runId) {
+      getEvidence(runId)
+        .then(res => {
+          if (!alive) return
+          setEvidence(res)
+        })
+        .catch(() => {
+          /* no evidence for that run — panel degrades to the checklist only */
+        })
+    }
     return () => {
       alive = false
     }
@@ -66,6 +139,11 @@ export default function CatalogPage() {
     })
   }, [data, query, tier])
 
+  const evidenceBySku = useMemo(
+    () => new Map((evidence?.products ?? []).map(e => [e.sku, e])),
+    [evidence]
+  )
+
   if (error) return <ErrorBox code={error.code} message={error.message} />
   if (!data) return <PanelSkeleton lines={6} />
 
@@ -78,7 +156,8 @@ export default function CatalogPage() {
         <h1 className='font-pixel text-lg tracking-normal'>Catalog</h1>
         <p className='text-muted-foreground mt-1 text-sm'>
           What the agents actually see — {data.count} listings in the audited catalog
-          {data.source === 'demo' ? ' (demo store)' : ''}.
+          {data.source === 'demo' ? ' (demo store)' : ''}. Click any row for its
+          legibility checklist and verbatim agent reasoning.
         </p>
       </div>
 
@@ -131,6 +210,7 @@ export default function CatalogPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className='w-8' aria-label='Expand' />
                 <TableHead>SKU</TableHead>
                 <TableHead>Title</TableHead>
                 <TableHead>Price</TableHead>
@@ -140,30 +220,135 @@ export default function CatalogPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map(p => (
-                <TableRow key={p.id}>
-                  <TableCell className='font-mono text-xs'>{p.id}</TableCell>
-                  <TableCell className='max-w-44 truncate text-sm font-medium'>{p.title}</TableCell>
-                  <TableCell className='font-mono text-xs tabular-nums'>{inr(p.price_inr)}</TableCell>
-                  <TableCell>
-                    <TierChip tier={p.tier} />
-                  </TableCell>
-                  <TableCell className='text-xs'>
-                    {p.structured_data && Object.keys(p.structured_data).length > 0 ? (
-                      <span className='text-emerald-600 dark:text-emerald-400'>✓ present</span>
-                    ) : (
-                      <span className='text-muted-foreground'>absent</span>
+              {filtered.map(p => {
+                const checks = checklistFor(p)
+                const failed = checks.filter(c => !c.ok)
+                const ev = evidenceBySku.get(p.id)
+                const open = openSku === p.id
+                return (
+                  <Fragment key={p.id}>
+                    <TableRow
+                      className='cursor-pointer'
+                      onClick={() => setOpenSku(open ? null : p.id)}
+                    >
+                      <TableCell>
+                        <ChevronDown
+                          className={`size-4 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`}
+                        />
+                      </TableCell>
+                      <TableCell className='font-mono text-xs'>{p.id}</TableCell>
+                      <TableCell className='max-w-44 truncate text-sm font-medium'>{p.title}</TableCell>
+                      <TableCell className='font-mono text-xs tabular-nums'>{inr(p.price_inr)}</TableCell>
+                      <TableCell>
+                        <TierChip tier={p.tier} />
+                      </TableCell>
+                      <TableCell className='text-xs'>
+                        {p.structured_data && Object.keys(p.structured_data).length > 0 ? (
+                          <span className='text-emerald-600 dark:text-emerald-400'>✓ present</span>
+                        ) : (
+                          <span className='text-muted-foreground'>absent</span>
+                        )}
+                      </TableCell>
+                      <TableCell className='text-muted-foreground hidden max-w-72 truncate text-xs md:table-cell'>
+                        {p.description}
+                      </TableCell>
+                    </TableRow>
+                    {open && (
+                      <TableRow>
+                        <TableCell colSpan={7} className='bg-muted/30 p-0'>
+                          <div className='grid gap-6 p-4 md:grid-cols-2'>
+                            <div>
+                              <p className='mb-2 font-mono text-[11px] tracking-wide uppercase'>
+                                Legibility checklist
+                              </p>
+                              <ul className='space-y-1.5'>
+                                {checks.map(c => (
+                                  <li key={c.label} className='flex items-start gap-2 text-sm'>
+                                    <span
+                                      className={
+                                        c.ok
+                                          ? 'text-emerald-600 dark:text-emerald-400'
+                                          : 'text-rose-600 dark:text-rose-400'
+                                      }
+                                    >
+                                      {c.ok ? '✓' : '✗'}
+                                    </span>
+                                    <span>
+                                      {c.label}
+                                      {!c.ok && c.fix && (
+                                        <span className='text-muted-foreground'> — {c.fix}</span>
+                                      )}
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                              {failed.length > 0 && (
+                                <div className='mt-3 flex flex-wrap gap-1.5'>
+                                  {[...failed]
+                                    .sort((a, b) =>
+                                      checks.findIndex(c => c.label === a.label) -
+                                      checks.findIndex(c => c.label === b.label))
+                                    .map(c => (
+                                      <Badge key={c.label} variant='outline' className='text-[11px]'>
+                                        fix: {c.label.toLowerCase()}
+                                      </Badge>
+                                    ))}
+                                </div>
+                              )}
+                            </div>
+                            <div>
+                              <p className='mb-2 font-mono text-[11px] tracking-wide uppercase'>
+                                Agent evidence
+                                {ev ? ` · picked ${ev.picks}×` : ''}
+                              </p>
+                              {ev && ev.quotes.length > 0 ? (
+                                <div className='space-y-3'>
+                                  {ev.quotes.map((q, i) => (
+                                    <Quote key={i} q={q} />
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className='text-muted-foreground text-sm'>
+                                  No agent quotes for this product yet — run an audit,
+                                  then this panel shows real model reasoning about it.
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </TableCell>
+                      </TableRow>
                     )}
-                  </TableCell>
-                  <TableCell className='text-muted-foreground hidden max-w-72 truncate text-xs md:table-cell'>
-                    {p.description}
-                  </TableCell>
-                </TableRow>
-              ))}
+                  </Fragment>
+                )
+              })}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
+
+      {evidence && evidence.declines.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className='text-base'>Why agents walk away</CardTitle>
+            <CardDescription>
+              Verbatim reasoning from trials where the agent chose nothing — the
+              demand these listings are losing outright.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className='grid gap-4 md:grid-cols-2'>
+            {evidence.declines.map((q, i) => (
+              <Quote key={i} q={q} />
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {!evidence && (
+        <p className='text-muted-foreground text-center text-xs'>
+          Agent evidence appears after your first audit run — it quotes real model
+          reasoning from the trial matrix.
+        </p>
+      )}
     </div>
   )
 }

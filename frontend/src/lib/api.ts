@@ -522,3 +522,28 @@ export function getPaymentStatus(runId: string): Promise<PaymentStatusResponse> 
 export function streamUrl(runId: string): string {
   return `${API_BASE}/api/stream/${encodeURIComponent(runId)}`;
 }
+
+export interface EvidenceQuote {
+  model: string;
+  persona_id: string;
+  condition?: string;
+  text: string;
+}
+
+export interface EvidenceProduct {
+  sku: string;
+  picks: number;
+  quotes: EvidenceQuote[];
+}
+
+export interface EvidenceResponse {
+  run_id: string;
+  status: string;
+  products: EvidenceProduct[];
+  declines: EvidenceQuote[];
+}
+
+/** Verbatim LLM reasoning grouped by chosen SKU (Agent Evidence Panel). */
+export function getEvidence(runId: string): Promise<EvidenceResponse> {
+  return request<EvidenceResponse>(`/api/evidence/${encodeURIComponent(runId)}`);
+}

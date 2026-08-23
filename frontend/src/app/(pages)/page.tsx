@@ -37,6 +37,7 @@ import {
 import { getLastRun, rememberRun } from '@/lib/runs'
 import { ErrorBox } from '@/components/agentaudit/bits'
 import { RunsDashboard } from '@/components/agentaudit/RunsDashboard'
+import { LimitationsFooter } from '@/components/agentaudit/LimitationsFooter'
 
 type Phase = 'idle' | 'uploading' | 'uploaded' | 'starting'
 
@@ -296,6 +297,9 @@ export default function LandingPage() {
           carries its confidence interval.
         </AlertDescription>
       </Alert>
+
+      {/* ---------- proven vs pending limitations footer (impl plan §3.9) ---------- */}
+      <LimitationsFooter />
     </div>
   )
 }
