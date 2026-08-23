@@ -5,17 +5,17 @@ import { Progress as ProgressPrimitive } from '@base-ui/react/progress'
 import { cn } from '@/lib/utils'
 
 function Progress({ className, children, value, ...props }: ProgressPrimitive.Root.Props) {
+  // Children-only: callers render their own <ProgressTrack>/<ProgressIndicator>.
+  // (The template auto-appended a second track after children, which produced
+  // two stacked loading bars on the live-run page.)
   return (
     <ProgressPrimitive.Root
       value={value}
       data-slot='progress'
-      className={cn('flex flex-wrap gap-3', className)}
+      className={cn('flex flex-col gap-3', className)}
       {...props}
     >
       {children}
-      <ProgressTrack>
-        <ProgressIndicator />
-      </ProgressTrack>
     </ProgressPrimitive.Root>
   )
 }

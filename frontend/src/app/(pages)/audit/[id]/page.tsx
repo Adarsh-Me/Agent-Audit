@@ -57,6 +57,9 @@ export default function ProgressPage() {
   const [error, setError] = useState<{ code: string; message: string } | null>(null)
   const [elapsed, setElapsed] = useState(0)
   const [stalled, setStalled] = useState(false)
+  const [meta, setMeta] = useState<{ merchant: string | null; startedAt: string | null; reason: string | null }>(
+    { merchant: null, startedAt: null, reason: null }
+  )
 
   const startedAtRef = useRef<number>(Date.now())
   const navigatedRef = useRef(false)
@@ -86,6 +89,7 @@ export default function ProgressPage() {
         setTotal(s.trials_total ?? 640)
         setCostUsd(s.cost_usd)
         setEtaS(s.eta_s ?? 0)
+        setMeta({ merchant: s.merchant ?? null, startedAt: s.started_at ?? null, reason: s.reason ?? null })
         if (s.status === 'queued' || s.status === 'running') {
           setStatus(s.status)
           startedAtRef.current = Date.now()
@@ -239,8 +243,9 @@ export default function ProgressPage() {
       ) : null}
       {status === 'failed' ? (
         <div className='rounded-lg border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-700 dark:text-rose-400'>
-          The run stopped early — the AI provider reported an unrecoverable error. You are only
-          charged for shopping missions that already completed.{' '}
+          <strong>This run stopped early.</strong>{' '}
+          {meta.reason ?? 'The AI provider reported an unrecoverable error.'} You are only charged
+          for shopping missions that already completed.{' '}
           <Link href='/' className='underline underline-offset-4'>
             Start a new audit
           </Link>{' '}
@@ -252,21 +257,38 @@ export default function ProgressPage() {
       <Card>
         <CardHeader>
           <div className='flex flex-wrap items-center gap-3'>
-            <CardTitle className='font-mono text-base' title='run id (click to copy)'>
-              <span
-                className='cursor-pointer'
-                onClick={() => navigator.clipboard?.writeText(runId).catch(() => {})}
-              >
-                {runId}
-              </span>
-            </CardTitle>
-            <StatusChip status={status === 'loading' ? 'queued' : status} />
-            {(status === 'running' || status === 'queued') && (
-              <span className='text-muted-foreground font-mono text-xs tabular-nums'>
-                elapsed {Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, '0')}
-              </span>
-            )}
-            <span className='ml-auto text-xs'>
+            <div className='min-w-0'>
+              <CardTitle className='font-pixel text-xl font-bold tracking-normal' title='the store this audit ran against'>
+                {meta.merchant ?? 'Audit run'}
+              </CardTitle>
+              <div className='mt-1 flex flex-wrap items-center gap-2'>
+                <StatusChip status={status === 'loading' ? 'queued' : status} />
+                <span
+                  className='text-muted-foreground cursor-pointer font-mono text-[11px]'
+                  title='run id (click to copy)'
+                  onClick={() => navigator.clipboard?.writeText(runId).catch(() => {})}
+                >
+                  {runId.slice(0, 8)}
+                </span>
+                {(status === 'running' || status === 'queued') && (
+                  <span className='text-muted-foreground font-mono text-xs tabular-nums'>
+                    elapsed {Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, '0')}
+                  </span>
+                )}
+              </div>
+            </div>
+            <span className='ml-auto text-right text-xs'>
+              {meta.startedAt ? (
+                <span className='text-muted-foreground block font-mono text-[11px] tabular-nums'>
+                  {new Date(meta.startedAt).toLocaleString('en-IN', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </span>
+              ) : null}
               {transport === 'polling' ? (
                 <Badge variant='outline' className='border-amber-500/40 text-amber-600 dark:text-amber-400'>
                   reconnecting… (polling every 3s)
@@ -312,7 +334,7 @@ export default function ProgressPage() {
         {/* ---------- live ticker ---------- */}
         <Card>
           <CardHeader>
-            <CardTitle className='text-base'>Live shopper feed</CardTitle>
+            <CardTitle>Live shopper feed</CardTitle>
             <CardDescription>
               Each row is one simulated shopper finishing a mission. Amber rows said
               &ldquo;nothing fits&rdquo;.
@@ -360,7 +382,7 @@ export default function ProgressPage() {
         {/* ---------- explainer ---------- */}
         <Card>
           <CardHeader>
-            <CardTitle className='text-base'>What&rsquo;s happening</CardTitle>
+            <CardTitle>What&rsquo;s happening</CardTitle>
             <CardDescription>The controlled experiment behind every number.</CardDescription>
           </CardHeader>
           <CardContent className='flex flex-col gap-3 text-sm'>

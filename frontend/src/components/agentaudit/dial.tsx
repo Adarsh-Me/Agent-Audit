@@ -62,19 +62,23 @@ export function ScoreDial({
   const color =
     score >= 80 ? 'var(--chart-2)' : score >= 60 ? 'var(--primary)' : 'var(--muted-foreground)'
 
+  // CI sits below the ring, not inside it — inside collides with the number
+  // once the dial drops to ~100px (results headline strip).
   return (
-    <Dial frac={frac} size={size} color={color}>
-      <div className='font-pixel text-2xl' style={{ fontSize: size / 5.5 }}>
-        {score.toFixed(1)}
-      </div>
+    <div className='inline-flex flex-col items-center'>
+      <Dial frac={frac} size={size} color={color}>
+        <div className='font-pixel text-2xl' style={{ fontSize: size / 5.5 }}>
+          {score.toFixed(1)}
+        </div>
+      </Dial>
       {lo !== undefined && hi !== undefined ? (
         <div
-          className='text-muted-foreground mt-0.5 font-mono text-[11px]'
+          className='text-muted-foreground mt-1.5 font-mono text-[11px]'
           title='95% confidence interval, persona-cluster bootstrap, B = 2,000'
         >
           [{lo.toFixed(1)} – {hi.toFixed(1)}]
         </div>
       ) : null}
-    </Dial>
+    </div>
   )
 }

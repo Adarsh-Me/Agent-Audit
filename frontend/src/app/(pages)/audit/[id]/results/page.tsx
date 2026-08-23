@@ -204,8 +204,8 @@ export default function ResultsPage() {
       {/* ---------- headline strip ---------- */}
       <Card>
         <CardContent className='flex flex-col gap-4 py-5'>
-          <div className='grid items-center gap-6 md:grid-cols-3'>
-            <div className='flex items-center gap-4'>
+          <div className='grid items-center gap-6 md:grid-cols-2 xl:grid-cols-3'>
+            <div className='flex min-w-0 items-center gap-4'>
               <ScoreDial score={report.score.value} lo={report.score.ci_low} hi={report.score.ci_high} size={104} />
               <div>
                 <div className='text-muted-foreground text-xs font-medium tracking-wide uppercase'>
@@ -226,7 +226,7 @@ export default function ResultsPage() {
               </div>
             </div>
 
-            <div>
+            <div className='min-w-0 break-words'>
               <div className='text-muted-foreground text-xs font-medium tracking-wide uppercase'>
                 Revenue at risk / month{' '}
                 <Term tip='If AI agents drive the traffic share you pick below, this is the monthly revenue affected when agents cannot complete a purchase on your store.'>
@@ -259,7 +259,7 @@ export default function ResultsPage() {
               ) : null}
             </div>
 
-            <div>
+            <div className='min-w-0 break-words'>
               <div className='text-muted-foreground text-xs font-medium tracking-wide uppercase'>
                 Recoverable revenue
               </div>
@@ -321,10 +321,63 @@ export default function ResultsPage() {
         </CardContent>
       </Card>
 
+      {/* ---------- run details ---------- */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Run details</CardTitle>
+        </CardHeader>
+        <CardContent className='flex flex-col gap-4'>
+          <div className='grid gap-3 sm:grid-cols-3'>
+            <StatCard
+              k='Shopping missions'
+              v={`${report.trials.total}`}
+              sub={`${report.trials.parse_ok} returned a usable choice · ${report.trials.forced} were must-pick scenarios`}
+            />
+            <StatCard k='AI cost' v={usd(report.cost_usd)} sub='provider spend, hard-capped — never silent overspend' />
+            <StatCard
+              k='Run id'
+              v={<span className='font-mono text-base'>{report.run_id.slice(0, 8)}</span>}
+              sub={report.manifest_ref ?? 'live run'}
+            />
+          </div>
+          <div className='max-w-md'>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>AI model</TableHead>
+                  <TableHead>
+                    <Term tip='Share of this model&rsquo;s answers that could not be used (garbled, off-catalog, or provider errors). These trials are counted honestly, never dropped silently.'>
+                      Unusable answers
+                    </Term>
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {report.models_meta.map(m => (
+                  <TableRow key={m.id}>
+                    <TableCell className='font-mono text-xs'>{m.id}</TableCell>
+                    <TableCell className='tabular-nums'>{pct(m.parse_failure_rate)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          <Separator />
+
+          <div className='flex flex-wrap gap-3'>
+            <Button variant='outline' render={<Link href={`/checkout/${runId}`} />}>
+              Watch an agent buy →
+            </Button>
+            <Button render={<Link href={`/audit/${runId}/fixes`} />}>Fix what&rsquo;s broken →</Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* ---------- choice heat table ---------- */}
       <Card>
         <CardHeader>
-          <CardTitle className='text-base'>Where agent demand landed</CardTitle>
+          <CardTitle>Where agent demand landed</CardTitle>
           <CardDescription>
             How evenly AI shoppers spread their choices across your catalog.{' '}
             <Term tip='A concentration score from 0 to 1: near 0 means demand spreads evenly across products; near 1 means agents pile onto one or two listings and ignore the rest.'>
@@ -407,7 +460,7 @@ export default function ResultsPage() {
       {/* ---------- invisible strip ---------- */}
       <Card>
         <CardHeader>
-          <CardTitle className='text-base'>Products invisible to AI agents</CardTitle>
+          <CardTitle>Products invisible to AI agents</CardTitle>
           <CardDescription>
             These listings get statistically fewer agent choices than an even split would give
             them — even at the optimistic end of the range. An AI shopper picking completely at
@@ -443,7 +496,7 @@ export default function ResultsPage() {
       {/* ---------- framing + stability + position ---------- */}
       <Card>
         <CardHeader>
-          <CardTitle className='text-base'>Wording changes what agents pick</CardTitle>
+          <CardTitle>Wording changes what agents pick</CardTitle>
           <CardDescription>
             We rewrote each listing&rsquo;s wording — same facts, different phrasing — and measured
             how agent choices moved. Average shift across rewritten listings:{' '}
@@ -500,7 +553,7 @@ export default function ResultsPage() {
         {/* ---------- stability ---------- */}
         <Card>
           <CardHeader>
-            <CardTitle className='text-base'>Do different AI models agree?</CardTitle>
+            <CardTitle>Do different AI models agree?</CardTitle>
             <CardDescription>
               How closely each pair of AI models ranks your products (1.00 = identical taste, 0 =
               complete disagreement). Average agreement:{' '}
@@ -524,7 +577,7 @@ export default function ResultsPage() {
         {/* ---------- position bias ---------- */}
         <Card>
           <CardHeader>
-            <CardTitle className='text-base'>Does listing position decide sales?</CardTitle>
+            <CardTitle>Does listing position decide sales?</CardTitle>
             <CardDescription>
               We shuffled the listing order randomly and compared — if choices follow position,
               the first slots have an unfair advantage regardless of product quality.
@@ -581,7 +634,7 @@ export default function ResultsPage() {
       {/* ---------- coverage ---------- */}
       <Card>
         <CardHeader>
-          <CardTitle className='text-base'>How often agents buy nothing</CardTitle>
+          <CardTitle>How often agents buy nothing</CardTitle>
           <CardDescription>
             Share of shopping missions that ended with no purchase — the agent found nothing that
             matched its client&rsquo;s need, or couldn&rsquo;t verify it:{' '}
@@ -626,58 +679,6 @@ export default function ResultsPage() {
         </CardContent>
       </Card>
 
-      {/* ---------- run details ---------- */}
-      <Card>
-        <CardHeader>
-          <CardTitle className='text-base'>Run details</CardTitle>
-        </CardHeader>
-        <CardContent className='flex flex-col gap-4'>
-          <div className='grid gap-3 sm:grid-cols-3'>
-            <StatCard
-              k='Shopping missions'
-              v={`${report.trials.total}`}
-              sub={`${report.trials.parse_ok} returned a usable choice · ${report.trials.forced} were must-pick scenarios`}
-            />
-            <StatCard k='AI cost' v={usd(report.cost_usd)} sub='provider spend, hard-capped — never silent overspend' />
-            <StatCard
-              k='Run id'
-              v={<span className='font-mono text-base'>{report.run_id.slice(0, 8)}</span>}
-              sub={report.manifest_ref ?? 'live run'}
-            />
-          </div>
-          <div className='max-w-md'>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>AI model</TableHead>
-                  <TableHead>
-                    <Term tip='Share of this model&rsquo;s answers that could not be used (garbled, off-catalog, or provider errors). These trials are counted honestly, never dropped silently.'>
-                      Unusable answers
-                    </Term>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {report.models_meta.map(m => (
-                  <TableRow key={m.id}>
-                    <TableCell className='font-mono text-xs'>{m.id}</TableCell>
-                    <TableCell className='tabular-nums'>{pct(m.parse_failure_rate)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-
-          <Separator />
-
-          <div className='flex flex-wrap gap-3'>
-            <Button variant='outline' render={<Link href={`/checkout/${runId}`} />}>
-              Watch an agent buy →
-            </Button>
-            <Button render={<Link href={`/audit/${runId}/fixes`} />}>Fix what&rsquo;s broken →</Button>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   )
 }

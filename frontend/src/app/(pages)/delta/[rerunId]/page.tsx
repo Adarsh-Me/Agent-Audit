@@ -101,7 +101,7 @@ export default function DeltaPage() {
   return (
     <div className='flex flex-col gap-6'>
       <div className='flex flex-wrap items-baseline gap-3'>
-        <h1 className='font-pixel text-lg tracking-normal'>
+        <h1 className='font-pixel text-2xl font-bold tracking-normal'>
           Verification — did the fixes work?
         </h1>
         <Badge
@@ -161,7 +161,7 @@ export default function DeltaPage() {
       <div className='grid gap-4 lg:grid-cols-2'>
         <Card>
           <CardHeader>
-            <CardTitle className='text-base'>Coverage failure rate F_task</CardTitle>
+            <CardTitle>Coverage failure rate F_task</CardTitle>
           </CardHeader>
           <CardContent className='flex flex-col gap-4'>
             <Table>
@@ -207,7 +207,7 @@ export default function DeltaPage() {
 
         <Card className='border-emerald-500/30'>
           <CardHeader>
-            <CardTitle className='text-base'>Money recovered</CardTitle>
+            <CardTitle>Money recovered</CardTitle>
           </CardHeader>
           <CardContent className='flex flex-col gap-4'>
             {delta.recoverable_inr ? (
@@ -240,7 +240,7 @@ export default function DeltaPage() {
       {/* ---------- per-SKU changes ---------- */}
       <Card>
         <CardHeader>
-          <CardTitle className='text-base'>Per-product demand shift — top movers</CardTitle>
+          <CardTitle>Per-product demand shift — top movers</CardTitle>
           <CardDescription>
             Biggest absolute share changes between the two runs.
           </CardDescription>

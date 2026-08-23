@@ -116,6 +116,17 @@ async def get_audit(run_id: str, session: AsyncSession = Depends(get_session)) -
     done = (await session.execute(
         select(func.count()).select_from(Trial).where(Trial.run_id == run_id)
     )).scalar()
+
+    catalog = await session.get(Catalog, run.catalog_id) if run.catalog_id else None
+    merchant_name = None
+    if catalog is not None and catalog.merchant_id:
+        from app.db.models import Merchant
+
+        merchant = await session.get(Merchant, catalog.merchant_id)
+        merchant_name = merchant.name if merchant else None
+
+    from app.routers.runs import _human_abort_reason
+
     # ETA from elapsed-average throughput (cache fast-forwards make the early
     # rate optimistic, but it converges) — the old fixed 0.35 s/trial claimed
     # "168s left" while ~75 minutes of live calls remained (ba545a33).
@@ -133,7 +144,11 @@ async def get_audit(run_id: str, session: AsyncSession = Depends(get_session)) -
         "eta_s": eta_s,
         "parent_run_id": run.parent_run_id,
         "type": run.type,
+        "merchant": merchant_name,
+        "catalog_source": catalog.source if catalog else None,
+        "started_at": run.started_at.isoformat() if run.started_at else None,
         "abort_reason": getattr(run, "abort_reason", None),
+        "reason": _human_abort_reason(run),
     }
 
 

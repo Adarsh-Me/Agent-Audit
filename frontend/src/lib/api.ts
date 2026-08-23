@@ -89,6 +89,10 @@ export interface AuditStatusResponse {
   parent_run_id: string | null;
   type: 'audit' | 'rerun';
   abort_reason?: string | null;
+  merchant?: string | null;
+  catalog_source?: string | null;
+  started_at?: string | null;
+  reason?: string | null;
 }
 
 export interface TrialTotals {

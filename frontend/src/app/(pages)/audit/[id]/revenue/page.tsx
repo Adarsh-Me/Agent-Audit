@@ -99,7 +99,7 @@ export default function RevenuePage() {
   return (
     <div className='flex flex-col gap-6'>
       <div className='flex flex-wrap items-baseline gap-3'>
-        <h1 className='font-pixel text-lg tracking-normal'>Revenue at Risk</h1>
+        <h1 className='font-pixel text-2xl font-bold tracking-normal'>Revenue at Risk</h1>
         <span className='text-muted-foreground text-sm'>
           run <span className='font-mono text-xs'>{runId.slice(0, 8)}</span> ·{' '}
           <Link
@@ -120,7 +120,7 @@ export default function RevenuePage() {
           {/* ---------- scenario controls ---------- */}
           <Card>
             <CardHeader>
-              <CardTitle className='text-base'>Scenario inputs</CardTitle>
+              <CardTitle>Scenario inputs</CardTitle>
               <CardDescription>
                 Two assumptions, clearly labeled — everything else on this page is measured.
               </CardDescription>
@@ -180,7 +180,7 @@ export default function RevenuePage() {
           <div className='grid gap-4 md:grid-cols-2'>
             <Card>
               <CardHeader>
-                <CardTitle className='text-base'>Revenue at Risk</CardTitle>
+                <CardTitle>Revenue at Risk</CardTitle>
                 <CardDescription>
                   GMV × agent share × measured task-failure rate. Scenario output — it moves linearly
                   with the two assumptions above.
@@ -207,7 +207,7 @@ export default function RevenuePage() {
             {data.recoverable_inr ? (
               <Card className='border-emerald-500/40'>
                 <CardHeader>
-                  <CardTitle className='text-base'>Recoverable</CardTitle>
+                  <CardTitle>Recoverable</CardTitle>
                   <CardDescription>
                     Recovered if the approved fixes hold up — verified by re-run.
                   </CardDescription>
@@ -244,7 +244,7 @@ export default function RevenuePage() {
             ) : (
               <Card>
                 <CardHeader>
-                  <CardTitle className='text-base'>Recoverable</CardTitle>
+                  <CardTitle>Recoverable</CardTitle>
                   <CardDescription>
                     Appears after a remediation re-run verifies how much risk the fixes actually
                     remove. No verified delta exists for this run yet.
@@ -265,7 +265,7 @@ export default function RevenuePage() {
           {/* ---------- inputs ledger ---------- */}
           <Card>
             <CardHeader>
-              <CardTitle className='text-base'>
+              <CardTitle>
                 Inputs — every number is labeled by where it came from
               </CardTitle>
             </CardHeader>

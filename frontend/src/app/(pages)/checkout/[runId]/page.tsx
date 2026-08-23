@@ -179,7 +179,7 @@ export default function CheckoutPage() {
   return (
     <div className='flex flex-col gap-6'>
       <div className='flex flex-wrap items-baseline gap-3'>
-        <h1 className='font-pixel text-lg tracking-normal'>Agent checkout proof</h1>
+        <h1 className='font-pixel text-2xl font-bold tracking-normal'>Agent checkout proof</h1>
         <span className='text-muted-foreground text-sm'>
           run <span className='font-mono text-xs'>{runId.slice(0, 8)}</span>
         </span>
@@ -189,7 +189,7 @@ export default function CheckoutPage() {
         {/* ---------- left: agent console ---------- */}
         <Card>
           <CardHeader>
-            <CardTitle className='text-base'>Agent console</CardTitle>
+            <CardTitle>Agent console</CardTitle>
             <CardDescription>
               Scripted P07 &ldquo;Deal Hunter&rdquo; walkthrough: choose a product, create a payment
               link, hand off to a human.
@@ -238,7 +238,7 @@ export default function CheckoutPage() {
         {/* ---------- right: payment card ---------- */}
         <Card>
           <CardHeader>
-            <CardTitle className='text-base'>Payment</CardTitle>
+            <CardTitle>Payment</CardTitle>
           </CardHeader>
           <CardContent className='flex flex-col gap-4'>
             {!product && phase !== 'captured' ? (

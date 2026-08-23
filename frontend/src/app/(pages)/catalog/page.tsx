@@ -154,7 +154,7 @@ export default function CatalogPage() {
   return (
     <div className='flex flex-col gap-6'>
       <div>
-        <h1 className='font-pixel text-lg tracking-normal'>Catalog</h1>
+        <h1 className='font-pixel text-2xl font-bold tracking-normal'>Catalog</h1>
         <p className='text-muted-foreground mt-1 text-sm'>
           What the agents actually see — {data.count} listings in the audited catalog
           {data.source === 'demo' ? ' (demo store)' : ''}. Click any row for its
@@ -180,7 +180,7 @@ export default function CatalogPage() {
       <Card>
         <CardHeader>
           <div className='flex flex-wrap items-center gap-3'>
-            <CardTitle className='text-base'>Products</CardTitle>
+            <CardTitle>Products</CardTitle>
             <div className='ml-auto flex flex-wrap items-center gap-2'>
               <Input
                 placeholder='Search title, sku, description…'
@@ -330,7 +330,7 @@ export default function CatalogPage() {
       {evidence && evidence.declines.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className='text-base'>Why agents walk away</CardTitle>
+            <CardTitle>Why agents walk away</CardTitle>
             <CardDescription>
               Verbatim reasoning from shopping missions where the agent bought nothing — the
               demand these listings are losing outright.

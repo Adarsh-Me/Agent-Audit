@@ -477,7 +477,8 @@ const SidebarLayout = () => {
     const groups: NavItem[] = [...navItems]
 
     if (runId) {
-      groups.unshift({
+      // after the Audit group so "New Audit" stays on top
+      groups.splice(1, 0, {
         groupLabel: 'Current Run',
         items: [
           {

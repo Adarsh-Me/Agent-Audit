@@ -1,5 +1,6 @@
 """Read-only Razorpay auth check: GET /v1/payments?count=1 with basic auth.
 Prints status only — never prints credentials."""
+import asyncio
 import base64
 import httpx
 
@@ -31,5 +32,4 @@ async def main() -> None:
         print("RESULT: FAILED -", desc)
 
 
-import asyncio
 asyncio.run(main())
