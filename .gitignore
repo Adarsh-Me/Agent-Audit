@@ -33,3 +33,4 @@ Thumbs.db
 
 # live-run server logs
 uvicorn_live*.log
+backend/.refire_payload.json
