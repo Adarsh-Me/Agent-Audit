@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 
 // Next Imports
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
+import { Geist } from 'next/font/google'
 
 // Third-party Imports
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
@@ -24,11 +24,6 @@ const geistSans = Geist({
   subsets: ['latin']
 })
 
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin']
-})
-
 export const metadata: Metadata = {
   title: {
     default: 'AgentAudit — AI-Buy-Readiness Audit',
@@ -43,10 +38,18 @@ const RootLayout = ({ children }: Readonly<{ children: ReactNode }>) => {
   return (
     <html
       lang='en'
-      className={cn(geistSans.variable, geistMono.variable, 'flex min-h-full w-full antialiased')}
+      className={cn(geistSans.variable, 'flex min-h-full w-full antialiased')}
       data-scroll-behavior='smooth'
       suppressHydrationWarning
     >
+      <head>
+        <link rel='preconnect' href='https://fonts.googleapis.com' />
+        <link rel='preconnect' href='https://fonts.gstatic.com' crossOrigin='anonymous' />
+        <link
+          href='https://fonts.googleapis.com/css2?family=Geist+Pixel&family=Martian+Mono:wght@100..800&display=swap'
+          rel='stylesheet'
+        />
+      </head>
       <body className='flex min-h-full w-full flex-auto flex-col'>
         <NuqsAdapter>
           <Providers sidebarDefaultOpen={true}>

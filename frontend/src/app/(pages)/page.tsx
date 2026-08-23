@@ -105,7 +105,7 @@ export default function LandingPage() {
           <FlaskConicalIcon data-icon='inline-start' />
           640 randomized controlled trials · real LLM agents
         </Badge>
-        <h1 className='max-w-3xl text-3xl leading-tight font-semibold tracking-tight text-balance sm:text-4xl'>
+        <h1 className='font-pixel max-w-3xl text-2xl leading-snug text-balance sm:text-3xl'>
           Can AI shopping agents actually buy from you?
         </h1>
         <p className='text-muted-foreground mt-5 max-w-2xl text-base leading-relaxed text-pretty'>

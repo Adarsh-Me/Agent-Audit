@@ -176,7 +176,7 @@ export default function FixesPage() {
   return (
     <div className='flex flex-col gap-4 pb-16'>
       <div className='flex flex-wrap items-baseline gap-3'>
-        <h1 className='text-xl font-semibold tracking-tight'>
+        <h1 className='font-pixel text-lg tracking-normal'>
           Remediation plan — {total} product{total === 1 ? '' : 's'},{' '}
           {data.remediations.reduce((n, r) => n + r.fixes.length, 0)} fixes
         </h1>

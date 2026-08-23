@@ -64,7 +64,7 @@ export function ScoreDial({
 
   return (
     <Dial frac={frac} size={size} color={color}>
-      <div className='text-2xl font-semibold tabular-nums' style={{ fontSize: size / 5.5 }}>
+      <div className='font-pixel text-2xl' style={{ fontSize: size / 5.5 }}>
         {score.toFixed(1)}
       </div>
       {lo !== undefined && hi !== undefined ? (

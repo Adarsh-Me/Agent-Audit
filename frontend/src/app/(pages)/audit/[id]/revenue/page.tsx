@@ -99,7 +99,7 @@ export default function RevenuePage() {
   return (
     <div className='flex flex-col gap-6'>
       <div className='flex flex-wrap items-baseline gap-3'>
-        <h1 className='text-xl font-semibold tracking-tight'>Revenue at Risk</h1>
+        <h1 className='font-pixel text-lg tracking-normal'>Revenue at Risk</h1>
         <span className='text-muted-foreground text-sm'>
           run <span className='font-mono text-xs'>{runId.slice(0, 8)}</span> ·{' '}
           <Link

@@ -75,7 +75,7 @@ export default function CatalogPage() {
   return (
     <div className='flex flex-col gap-6'>
       <div>
-        <h1 className='text-xl font-semibold tracking-tight'>Catalog</h1>
+        <h1 className='font-pixel text-lg tracking-normal'>Catalog</h1>
         <p className='text-muted-foreground mt-1 text-sm'>
           What the agents actually see — {data.count} listings in the audited catalog
           {data.source === 'demo' ? ' (demo store)' : ''}.

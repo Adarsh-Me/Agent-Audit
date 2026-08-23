@@ -557,9 +557,9 @@ const SidebarLayout = () => {
               <span className='bg-primary/15 text-primary flex size-8 shrink-0 items-center justify-center rounded-lg border border-primary/25'>
                 <Icon.ScanSearchIcon className='size-4' />
               </span>
-              <div className='flex flex-col items-start gap-0.5'>
-                <span className='text-lg leading-none font-semibold text-nowrap'>{themeConfig.templateName}</span>
-                <span className='text-muted-foreground text-[11px] leading-none font-light text-nowrap'>
+              <div className='flex flex-col items-start gap-1'>
+                <span className='font-pixel text-base leading-none text-nowrap'>{themeConfig.templateName}</span>
+                <span className='text-muted-foreground font-mono text-[10px] leading-none text-nowrap'>
                   {themeConfig.templateSubtitle}
                 </span>
               </div>
