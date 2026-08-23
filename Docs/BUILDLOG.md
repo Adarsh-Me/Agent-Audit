@@ -109,3 +109,11 @@ This is a deliverable, not a diary — it demonstrates engineering process to ju
 - **Ops honesty:** two overnight runs (a840125c, 6ee157a7) were fired manually at ~02:18 IST; the backend died again with machine sleep mid-first-run — orphan closed as `failed` (400 rows kept), second run completed. Monitor cron auto-restarts uvicorn and escalates stalls; gap-fill run `6b3fd1ea` fired post-quota-reset to measure nemotron's remaining trials against the refreshed pool.
 - **Spent:** $0.
 
+## Day 15c — Nemotron gap-fill live completion (Aug 23)
+
+- **Shipped:** run `6b3fd1ea` — post-quota-reset refire, all 640 trials executed and flushed, $0.00: **parse_ok 239/640**. Headlines with CI: score **67.1 [55.9–74.6]**, top‑3 capture 22.8% [13.0–35.1] (lift 3.04×, p=1e‑4), framing Δ +2.1 pp [+1.4, +8.3], F_task 10.1% [6.1–16.2], stability 0.58 moderate; invisible SKUs sku_003/030/037/040. Full JSON+MD at demo/live_report_6b3fd1ea.{json,md}.
+- **Honest delta vs 15b:** nemotron bulk 14/200 → **19/200** — the UTC-midnight reset opened the free pool just long enough for ~5 live successes before congestion re-closed it; further attempts hung past the unbreakable ≤300 s trial cap or returned 429, all counted as failures (parse rate 0.93 → 0.905). Cached successes replay free on any future refire, so accumulation continues across days without redoing work. gpt-oss stayed delisted (404 ×200 → counted); nemotron flagship 20/20 counted failures (no cache coverage).
+- **Observation:** score 70.5 → 67.1 and stability 0.75 → 0.58 moved purely because five more nemotron rows entered the pool — cross-model numbers are honestly sensitive to measured coverage per model; both runs publish their exact parse_ok n.
+- **Spent:** $0.
+
+
