@@ -14,7 +14,7 @@ async def main() -> None:
               '{"product_id": "sku_001", "reason": "cheapest that fits"}')
     async with httpx.AsyncClient(timeout=90.0) as cx:
         for oid in ("stealth/ox-alpha", "nvidia/nemotron-3.5-lightning:free",
-                    "openai/gpt-oss-20b:free"):
+                    "z-ai/glm-5.2:free"):
             payload = {"model": oid, "messages": [{"role": "user", "content": prompt}],
                        "temperature": 1.0,
                        "response_format": {"type": "json_object"}}

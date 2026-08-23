@@ -104,7 +104,7 @@ HHI and framing are reported as **diagnostics, deliberately not score inputs**: 
 | **Backend** | FastAPI + SQLAlchemy 2.x + Pydantic v2 | `asyncpg` / `aiosqlite`; `requirements.txt` pinned |
 | **Frontend** | Next.js 14 (App Router), Recharts | SWR + EventSource SSE; no headline number computed client-side |
 | **DB** | PostgreSQL 16 (SQLite fallback, `CHAR(36)` UUID portability) | DDL is SCHEMA §6 verbatim; adds `mirror` source, `parent_catalog_id`, `parent_run_id`, `entity_key`, `trials.tier/from_cache`, metric namespace `share:sku_023` |
-| **LLM gateway** | OpenRouter (single key, all providers) | `engine/models.yaml` pins 3 bulk — `stealth/ox-alpha`, `nvidia/nemotron-3.5-lightning:free`, `openai/gpt-oss-20b:free` — all $0.00/1M tok; flagship slots reuse the same providers with `-flagship` version suffixes so cache namespaces stay separate; version logged per trial, snapshot in `runs.models` |
+| **LLM gateway** | OpenRouter (single key, all providers) | `engine/models.yaml` pins 3 bulk — `stealth/ox-alpha`, `nvidia/nemotron-3.5-lightning:free`, `z-ai/glm-5.2:free` — all $0.00/1M tok (re-pinned 2026-08-23 after upstream delisted `gpt-oss-20b:free`; account-level free-tier cap 50 req/day noted in BUILDLOG); flagship slots reuse the same providers with `-flagship` version suffixes so cache namespaces stay separate; version logged per trial, snapshot in `runs.models` |
 | **Payments** | Razorpay test-mode Payment Links + webhooks | Paise at boundary only; policy-bounded per `SAFETY.md` |
 | **MCP** | Node stdio JSON-RPC 2.0 | `audit_status` / `get_report` / `create_payment_link` |
 | **Infra** | Docker Compose, `.venv`, Makefile | `make test` (83), `make validate` (8), `make seed-demo`, `make demo-check`, `make e2e` (Playwright) |
