@@ -1,28 +1,28 @@
 # Model pins — single source of truth (TECHSPEC §2/§3.2).
-# RE-PINNED 2026-08-22 against live GET /models on provisioning day, per the Day-0
-# instruction. User-directed primary/fallback pair:
+# RE-PINNED 2026-08-23: openai/gpt-oss-20b:free was delisted upstream (HTTP 404 on
+# every request, run 6ee157a7) — third bulk slot moves to z-ai/glm-5.2:free
+# ($0.00/1M tok, 256k ctx). Its free pool 429s while the OpenRouter account's
+# free-tier daily cap is exhausted (50 req/day, resets 00:00 UTC); after credits
+# are added (unlocks 1000 free-model req/day) it probes clean.
 #   primary  stealth/ox-alpha            (stealth provider, $0.00/1M tok)
 #   fallback nvidia/nemotron-3.5-lightning:free ($0.00/1M tok)
-# Third bulk slot: openai/gpt-oss-20b:free ($0.00/1M tok) — z-ai/glm-5.2:free was
-# probed first but its free pool was saturated (429 even on spaced single calls),
-# which would abort the run via triple-fail; gpt-oss-20b probed clean.
 # Flagship slots carry the same primary/fallback pair for the P07 checkout demo.
 # All five price at $0.00 today; engine-id rows in client.py PRICING_USD_PER_MTOK
 # must mirror that.
 bulk:
   - id: ox-alpha
     openrouter_id: stealth/ox-alpha
-    version: "stealth/ox-alpha@2026-08-22"
+    version: "stealth/ox-alpha@2026-08-23"
     json_mode: true          # probed live before the recorded run; flip to false on 4xx
     seed_supported: false    # stealth endpoint ignores seed
   - id: nemotron-flash
     openrouter_id: nvidia/nemotron-3.5-lightning:free
-    version: "nemotron-3.5-lightning:free@2026-08-22"
+    version: "nemotron-3.5-lightning:free@2026-08-23"
     json_mode: true
     seed_supported: false    # :free endpoints ignore seed; CI absorbs variance
-  - id: gpt-oss
-    openrouter_id: openai/gpt-oss-20b:free
-    version: "gpt-oss-20b:free@2026-08-22"
+  - id: glm
+    openrouter_id: z-ai/glm-5.2:free
+    version: "glm-5.2:free@2026-08-23"
     json_mode: true
     seed_supported: false
 flagship:
@@ -32,11 +32,11 @@ flagship:
   # silently ride bulk cache entries.
   - id: ox-alpha-flagship
     openrouter_id: stealth/ox-alpha
-    version: "stealth/ox-alpha@2026-08-22-flagship"
+    version: "stealth/ox-alpha@2026-08-23-flagship"
     json_mode: true
     seed_supported: false
   - id: nemotron-flagship
     openrouter_id: nvidia/nemotron-3.5-lightning:free
-    version: "nemotron-3.5-lightning:free@2026-08-22-flagship"
+    version: "nemotron-3.5-lightning:free@2026-08-23-flagship"
     json_mode: true
     seed_supported: false

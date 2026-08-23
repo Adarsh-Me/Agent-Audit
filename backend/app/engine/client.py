@@ -33,7 +33,7 @@ OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 PRICING_USD_PER_MTOK: dict[str, tuple[float, float]] = {
     "ox-alpha": (0.0, 0.0),
     "nemotron-flash": (0.0, 0.0),
-    "gpt-oss": (0.0, 0.0),
+    "glm": (0.0, 0.0),
     "ox-alpha-flagship": (0.0, 0.0),
     "nemotron-flagship": (0.0, 0.0),
 }

@@ -1,44 +1,63 @@
-import type { Metadata } from "next";
-import localFont from "next/font/local";
-import "./globals.css";
-import { FooterBar, TopBar } from "@/components/TopBar";
+// React Imports
+import type { ReactNode } from 'react'
 
-/**
- * Geist / Geist Mono (DESIGN §3), self-hosted.
- * NOTE: loaded via next/font/local rather than next/font/google — this Next
- * install's google-font dataset predates Geist's addition ("Unknown font
- * `Geist"` at build time) and deps are outside this change's scope.
- */
-const geistSans = localFont({
-  src: "./fonts/Geist-Variable.woff2",
-  weight: "100 900",
-  variable: "--font-sans",
-  display: "swap",
-});
+// Next Imports
+import type { Metadata } from 'next'
+import { Geist, Geist_Mono } from 'next/font/google'
 
-const geistMono = localFont({
-  src: "./fonts/GeistMono-Variable.woff2",
-  weight: "100 900",
-  variable: "--font-mono",
-  display: "swap",
-});
+// Third-party Imports
+import { NuqsAdapter } from 'nuqs/adapters/next/app'
+
+// Component Imports
+import Providers from '@/components/Providers'
+import { TooltipProvider } from '@/components/ui/tooltip'
+
+// Util Imports
+import { cn } from '@/lib/utils'
+
+// Style Imports
+import './globals.css'
+import ScrollToTop from '@/components/layout/ScrollToTop'
+
+const geistSans = Geist({
+  variable: '--font-geist-sans',
+  subsets: ['latin']
+})
+
+const geistMono = Geist_Mono({
+  variable: '--font-geist-mono',
+  subsets: ['latin']
+})
 
 export const metadata: Metadata = {
-  title: "AgentAudit — AI-Buy-Readiness Audit",
+  title: {
+    default: 'AgentAudit — AI-Buy-Readiness Audit',
+    template: '%s · AgentAudit'
+  },
   description:
-    "640 controlled agent trials measure whether AI shopping agents can see, choose, and buy from your catalog.",
-};
+    'Can AI shopping agents actually see, choose, and buy from your catalog? AgentAudit runs 640 randomized, controlled shopping trials with real LLM agents and measures choice behavior with confidence intervals.',
+  metadataBase: new URL(`${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}`)
+}
 
-export default function RootLayout({
-  children,
-}: Readonly<{ children: React.ReactNode }>) {
+const RootLayout = ({ children }: Readonly<{ children: ReactNode }>) => {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body>
-        <TopBar />
-        <main className="shell">{children}</main>
-        <FooterBar />
+    <html
+      lang='en'
+      className={cn(geistSans.variable, geistMono.variable, 'flex min-h-full w-full antialiased')}
+      data-scroll-behavior='smooth'
+      suppressHydrationWarning
+    >
+      <body className='flex min-h-full w-full flex-auto flex-col'>
+        <NuqsAdapter>
+          <Providers sidebarDefaultOpen={true}>
+            <TooltipProvider>{children}</TooltipProvider>
+          </Providers>
+        </NuqsAdapter>
+
+        <ScrollToTop />
       </body>
     </html>
-  );
+  )
 }
+
+export default RootLayout
