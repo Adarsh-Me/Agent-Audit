@@ -158,10 +158,14 @@ def parse_csv(raw: bytes) -> list[dict]:
     return items
 
 
-async def create_upload_catalog(session: AsyncSession, valid: list[dict]) -> str:
-    merchant = await session.scalar(select(Merchant).where(Merchant.name == UPLOAD_MERCHANT_NAME))
+async def create_upload_catalog(session: AsyncSession, valid: list[dict],
+                                merchant_name: str | None = None) -> str:
+    """Store-connector imports pass their own merchant_name (the store host);
+    file uploads keep the shared workspace merchant."""
+    name = merchant_name or UPLOAD_MERCHANT_NAME
+    merchant = await session.scalar(select(Merchant).where(Merchant.name == name))
     if merchant is None:
-        merchant = Merchant(name=UPLOAD_MERCHANT_NAME)
+        merchant = Merchant(name=name)
         session.add(merchant)
         await session.flush()
 

@@ -312,6 +312,34 @@ export interface PaymentStatusResponse {
   captured: boolean;
 }
 
+/* ------------------------------------------------ store import (Shopify) */
+
+export interface StoreImportResponse {
+  catalog_id: string;
+  store_url: string;
+  merchant: string;
+  products: {
+    valid: number;
+    invalid: UploadInvalidRow[];
+    capped_to: number | null;
+    pages_fetched: number;
+  };
+  store_currency: string;
+  fx: { rate: number; converted: boolean; note: string };
+}
+
+/** POST /api/stores/import — public Shopify products.json feed → auditable catalog. */
+export function importStore(input: {
+  url: string;
+  store_currency: "INR" | "USD" | "EUR" | "GBP";
+  max_products?: number;
+}): Promise<StoreImportResponse> {
+  return request<StoreImportResponse>("/api/stores/import", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
 /* -------------------------------------------------------------- SSE events */
 
 export interface SseProgressEvent {

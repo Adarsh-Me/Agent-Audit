@@ -122,7 +122,11 @@ provenance table including the completed live runs. See
 
 ## Known limitations (honest ones)
 
-- Demo store is synthetic; uploaded catalogs get template fix proposals with explicit
-  `[seller to confirm]` markers — we never fabricate specs for a real merchant.
+- Demo store is synthetic; uploaded and imported catalogs get template fix proposals with
+  explicit `[seller to confirm]` markers — we never fabricate specs for a real merchant.
+- Store imports (`POST /api/stores/import`) read a Shopify store's **public product feed**
+  (`/products.json`, paginated, capped at 100 listings, snapshot-at-import) — no HTML scraping,
+  no login, and nothing touches the live storefront. Non-INR stores convert at a fixed labeled
+  FX rate (`[assumed FX]`, never presented as measured).
 - Primary metrics pool bulk-tier models; flagship runs are reported but too thin to pool.
 - Single-process deployment scope; the SSE bus swaps for Redis pub/sub if multi-worker.

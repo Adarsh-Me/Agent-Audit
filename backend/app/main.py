@@ -16,6 +16,7 @@ from app.routers import delta as delta_router
 from app.routers import payments as payments_router
 from app.routers import remediations as remediations_router
 from app.routers import report as report_router
+from app.routers import stores as stores_router
 from app.routers import stream as stream_router
 from app.routers import uploads as uploads_router
 
@@ -67,6 +68,7 @@ async def app_error_handler(_: Request, exc: AppError) -> JSONResponse:
 
 app.include_router(catalog_router.router)
 app.include_router(uploads_router.router)
+app.include_router(stores_router.router)
 app.include_router(audit_router.router)
 app.include_router(report_router.router)
 app.include_router(stream_router.router)

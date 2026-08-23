@@ -207,8 +207,16 @@ Static site at `:8080`:
 
 1. `demo` — loads demo-store catalog directly (no HTTP dependency in the audit path).
 2. `upload` — JSON array or CSV validated against the canonical schema.
+3. `store` import (`POST /api/stores/import`, `app/ingest/store.py`) — a real Shopify
+   store's **public product feed** (`/products.json`): paginated reads (30/page server-side
+   hard cap, ≤4 GETs), identified browser User-Agent, capped at 100 listings, snapshot-at-
+   import. Rows flow through the shared upload validator unchanged (catalogs persist with
+   `source='upload'`, merchant = store host, provenance in `structured_data.store`).
+   Non-INR stores convert via `STORE_FX_TO_INR` — a labeled assumption, never measured.
 
-**No scraping code paths exist in MVP** (PRD NG-1). Future `agentaudit scan <url>` CLI is documented in README only.
+**No HTML scraping code paths exist** (PRD NG-1 as amended): the store connector reads the
+public JSON feed only, one import at a time, and never renders or authenticates to the
+storefront.
 
 ### 6.2 Canonical product schema
 

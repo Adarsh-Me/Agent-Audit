@@ -171,7 +171,10 @@ This section documents every research input, precisely what is borrowed, and —
 
 ### 4.2 Non-goals (explicit)
 
-- **NG-1** Live website scraping in MVP (tar pit; future CLI).
+- **NG-1** HTML scraping of live storefronts (amended 2026-08-23: the Shopify public-product-feed
+  import in `app/ingest/store.py` is *authorized catalog reads* — JSON feed, no HTML parsing, no
+  auth, ≤4 paginated GETs, snapshot-at-import — not scraping; generic site crawling remains a
+  non-goal).
 - **NG-2** Optimizing merchant sites for any specific model provider ("we don't do SEO for GPT").
 - **NG-3** Building a shopping agent for consumers (we build the *auditor*, not the buyer).
 - **NG-4** Causal claims that metadata fixes drive agent revenue (diagnostic correlation only, until A/B data exists).

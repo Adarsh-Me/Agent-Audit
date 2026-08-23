@@ -55,7 +55,7 @@ All headline numbers ship with **95% CIs** (persona-cluster bootstrap, B=2,000; 
 
 ## 4. How It Solves — Step-by-Step Pipeline
 
-**Step 1 — Ingest.** Demo store (40 SKUs, 4 categories ×10, 10 rich / 20 medium / 10 starved, invented brands, `sku_007` modal-rich, `sku_023` starved hero @ pos 19) or upload JSON/CSV validated against the canonical schema (5–500 rows, ≤5 MB, field-level E101–E107, unknown fields warn-and-strip).
+**Step 1 — Ingest.** Demo store (40 SKUs, 4 categories ×10, 10 rich / 20 medium / 10 starved, invented brands, `sku_007` modal-rich, `sku_023` starved hero @ pos 19), **real-store import** (paste a Shopify URL → public `/products.json` feed, ≤4 paginated reads, ≤100 listings, snapshot-at-import, labeled FX for non-INR stores), or upload JSON/CSV validated against the canonical schema (5–500 rows, ≤5 MB, field-level E101–E107, unknown fields warn-and-strip).
 
 **Step 2 — Trial engine.** Each trial presents the full 40-SKU listing and elicits **exactly ONE product choice** (single-pick JSON; `null` permitted in null-allowed conditions). Single-pick mirrors a real purchase decision and keeps shares interpretable as demand — `top3_capture` then measures whether that one choice lands in presented slots 1–3 vs the 3/N chance baseline. Full matrix (code truth: `backend/app/constants.py`, asserted in `engine/conditions.py`):
 

@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 
-import { ArrowRightIcon, FlaskConicalIcon, UploadIcon } from 'lucide-react'
+import { ArrowRightIcon, FlaskConicalIcon, GlobeIcon, UploadIcon } from 'lucide-react'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -17,11 +17,20 @@ import {
   CardTitle
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import {
   ApiError,
   createAudit,
+  importStore,
   uploadCatalog,
+  type StoreImportResponse,
   type UploadInvalidRow,
   type UploadResponse
 } from '@/lib/api'
@@ -256,16 +265,195 @@ export default function LandingPage() {
         </Card>
       </div>
 
+      {/* ---------- connect a real store ---------- */}
+      <StoreCard
+        disabled={phase === 'starting'}
+        onAudit={catalogId => {
+          setPhase('starting')
+          createAudit({ catalog_source: 'upload', catalog_id: catalogId })
+            .then(res => {
+              rememberRun(res.audit_id)
+              router.push(`/audit/${res.audit_id}`)
+            })
+            .catch((err: unknown) => {
+              setPhase('idle')
+              if (err instanceof ApiError) setError({ code: err.code, message: err.message })
+            })
+        }}
+      />
+
       {/* ---------- honesty strip ---------- */}
       <Alert>
         <AlertTitle>What this tool does not do</AlertTitle>
         <AlertDescription>
-          No scraping of live storefronts and no access to your production site — audits run against
-          a catalog snapshot you provide (or the demo store). Numbers come only from recorded trials
-          in this run; nothing is estimated client-side. Every headline figure carries its
-          confidence interval.
+          Store imports read the public product feed — a snapshot at import time. No HTML scraping,
+          no login, nothing touches the live storefront or its checkout. Numbers come only from
+          recorded trials in this run; nothing is estimated client-side. Every headline figure
+          carries its confidence interval.
         </AlertDescription>
       </Alert>
     </div>
+  )
+}
+
+/* ------------------------------------------------------------------ store card */
+
+const CURRENCIES = ['INR', 'USD', 'EUR', 'GBP'] as const
+type StoreCurrency = (typeof CURRENCIES)[number]
+
+function StoreCard({
+  disabled,
+  onAudit
+}: {
+  disabled: boolean;
+  onAudit: (catalogId: string) => void
+}) {
+  const [url, setUrl] = useState('')
+  const [currency, setCurrency] = useState<StoreCurrency>('INR')
+  const [importing, setImporting] = useState(false)
+  const [imported, setImported] = useState<StoreImportResponse | null>(null)
+  const [error, setError] = useState<{ code: string; message: string } | null>(null)
+
+  function onImport() {
+    const trimmed = url.trim()
+    if (!trimmed) {
+      setError({ code: 'E212', message: 'Paste your store URL first.' })
+      return
+    }
+    setImporting(true)
+    setError(null)
+    setImported(null)
+    importStore({ url: trimmed, store_currency: currency })
+      .then(res => {
+        setImported(res)
+      })
+      .catch((err: unknown) => {
+        if (err instanceof ApiError) setError({ code: err.code, message: err.message })
+        else setError({ code: 'E-UNK', message: 'Import failed unexpectedly.' })
+      })
+      .finally(() => setImporting(false))
+  }
+
+  const warnings = (imported?.products.invalid ?? []).filter(i => i.code.startsWith('W'))
+
+  return (
+    <Card className='border-primary/25'>
+      <CardHeader>
+        <div className='flex flex-wrap items-center gap-2'>
+          <GlobeIcon className='text-primary size-4' />
+          <CardTitle>Connect a real store</CardTitle>
+          <Badge
+            variant='outline'
+            className='h-5 border-primary/30 bg-primary/10 px-1.5 text-xs text-[oklch(0.78_0.12_258)]'
+          >
+            SHOPIFY
+          </Badge>
+          <span className='text-muted-foreground/70 ml-auto text-xs'>
+            no login needed — reads the public product feed
+          </span>
+        </div>
+        <CardDescription className='leading-relaxed'>
+          Paste your store&rsquo;s URL (e.g. <code className='font-mono text-xs'>mystore.myshopify.com</code>).
+          We import up to 100 listings as a snapshot, then run the same 640-trial audit on your real
+          catalog.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className='flex flex-col gap-4'>
+        {imported ? (
+          <div className='flex flex-col gap-3'>
+            <div className='flex flex-wrap items-center gap-2 text-sm'>
+              <span className='text-emerald-600 dark:text-emerald-400'>
+                ✓ {imported.products.valid} products imported from{' '}
+                <span className='font-mono text-xs'>{imported.merchant}</span>
+              </span>
+              {imported.products.capped_to ? (
+                <Badge variant='outline' className='h-5 text-xs'>
+                  capped at first {imported.products.capped_to}
+                </Badge>
+              ) : null}
+              {imported.fx.converted ? (
+                <Badge
+                  variant='outline'
+                  className='h-5 border-amber-500/30 bg-amber-500/10 text-xs text-amber-600 dark:text-amber-400'
+                >
+                  {imported.fx.note}
+                </Badge>
+              ) : null}
+            </div>
+            {warnings.length > 0 ? (
+              <ul className='text-muted-foreground space-y-0.5 pl-4 text-xs'>
+                {warnings.slice(0, 5).map((w, i) => (
+                  <li key={i} className='font-mono'>
+                    {w.code}: {w.message}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            <div className='flex flex-wrap gap-2'>
+              <Button disabled={disabled} onClick={() => onAudit(imported.catalog_id)}>
+                Audit this store
+                <ArrowRightIcon data-icon='inline-end' />
+              </Button>
+              <Button variant='outline' onClick={() => setImported(null)}>
+                Import another
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className='flex flex-wrap items-end gap-3'>
+              <div className='min-w-64 flex-1'>
+                <label
+                  className='text-muted-foreground mb-1.5 block text-xs font-medium uppercase'
+                  htmlFor='store-url'
+                >
+                  Store URL
+                </label>
+                <Input
+                  id='store-url'
+                  placeholder='mystore.myshopify.com'
+                  className='font-mono text-sm'
+                  value={url}
+                  onChange={e => setUrl(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') onImport()
+                  }}
+                />
+              </div>
+              <div className='w-36'>
+                <label
+                  className='text-muted-foreground mb-1.5 block text-xs font-medium uppercase'
+                  htmlFor='store-currency'
+                >
+                  Store currency
+                </label>
+                <Select value={currency} onValueChange={v => setCurrency((v ?? 'INR') as StoreCurrency)}>
+                  <SelectTrigger id='store-currency' className='w-full'>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CURRENCIES.map(c => (
+                      <SelectItem key={c} value={c}>
+                        {c}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button onClick={onImport} disabled={importing}>
+                {importing ? 'Importing…' : 'Import catalog'}
+              </Button>
+            </div>
+            <p className={cn('text-xs', imported === null && !error && 'text-muted-foreground/70')}>
+              Pick the currency your store sells in — prices arrive in the store&rsquo;s own
+              currency; non-INR is converted at a labeled fixed rate (assumption, never measured).
+              Some stores disable the public feed; the error will say so.
+            </p>
+          </>
+        )}
+
+        {error ? <ErrorBox code={error.code} message={error.message} /> : null}
+      </CardContent>
+    </Card>
   )
 }

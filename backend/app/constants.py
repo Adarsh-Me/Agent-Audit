@@ -82,6 +82,21 @@ DESCRIPTION_MAX_CHARS: Final = 2_000  # E105
 TITLE_MAX_CHARS: Final = 200
 UPLOAD_PURGE_DAYS: Final = 7
 
+# --- Store import (public Shopify /products.json; SCHEMA §3.1.4 extension) ---
+# The public feed hard-caps at 30 products per request regardless of ?limit=,
+# so importers paginate ?page=1..4 until the cap or an empty page.
+STORE_PAGE_SIZE: Final = 30
+STORE_PAGE_LIMIT: Final = 4
+STORE_MAX_PRODUCTS: Final = 100
+# FX is a labeled assumption, never a measured quantity: every affected rupee
+# figure renders with an [assumed FX] chip in the UI (PRD §19 claim discipline).
+STORE_FX_TO_INR: Final = {"INR": 1.0, "USD": 83.0, "EUR": 90.0, "GBP": 105.0}
+# Identified client UA — bare httpx defaults are refused by Shopify's edge (403).
+STORE_USER_AGENT: Final = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AgentAudit/1.0 "
+    "(+https://github.com/Adarsh-Me/Agent-Audit)"
+)
+
 # --- Engine execution semantics (TECHSPEC §7.4) ---
 PARSE_RETRIES: Final = 3
 RETRY_BACKOFF_S: Final = (1, 2, 4)
