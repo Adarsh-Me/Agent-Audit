@@ -2,6 +2,7 @@
 from collections.abc import AsyncIterator
 from functools import lru_cache
 
+from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.config import get_settings
@@ -9,7 +10,20 @@ from app.config import get_settings
 
 @lru_cache
 def get_engine():
-    return create_async_engine(get_settings().database_url, echo=False)
+    engine = create_async_engine(get_settings().database_url, echo=False)
+    if engine.url.drivername.startswith("sqlite"):
+        # WAL + a generous busy timeout: the DB lives under OneDrive-synced
+        # Desktop where sync-agent file locks cause transient SQLITE_BUSY on
+        # writes (ba545a33 post-mortem). Default rollback journal + 0s handler
+        # turns any concurrent reader/sync touch into a failed commit.
+        @event.listens_for(engine.sync_engine, "connect")
+        def _sqlite_pragmas(dbapi_conn, _record):  # noqa: ANN001
+            cur = dbapi_conn.cursor()
+            cur.execute("PRAGMA journal_mode=WAL")
+            cur.execute("PRAGMA busy_timeout=15000")
+            cur.execute("PRAGMA synchronous=NORMAL")
+            cur.close()
+    return engine
 
 
 @lru_cache

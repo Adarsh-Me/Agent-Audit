@@ -77,7 +77,7 @@ export default function ProgressPage() {
         setDone(s.trials_done)
         setTotal(s.trials_total ?? 640)
         setCostUsd(s.cost_usd)
-        setEtaS(s.eta_s)
+        setEtaS(s.eta_s ?? 0)
         if (s.status === 'queued' || s.status === 'running') {
           setStatus(s.status)
           startedAtRef.current = Date.now()
@@ -119,7 +119,7 @@ export default function ProgressPage() {
           })
           setTotal(s.trials_total ?? 640)
           setCostUsd(s.cost_usd)
-          setEtaS(s.eta_s)
+          setEtaS(s.eta_s ?? 0)
           if (s.status !== 'running' && s.status !== 'queued') {
             closed = true
             finishToResults(s.status)

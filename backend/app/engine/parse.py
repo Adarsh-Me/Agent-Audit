@@ -34,12 +34,17 @@ def extract_json(text: str) -> str | None:
 
 
 def parse_response(raw: str, valid_skus: set[str],
-                   ordinal_map: dict[str, str] | None = None) -> ParsedChoice:
+                   ordinal_map: dict[str, str] | None = None,
+                   null_allowed: bool = True) -> ParsedChoice:
     """Parse a trial response into a catalog choice.
 
     ordinal_map: {"1": sku, ..., "40": sku} for the presented order — models that
     ignore the bracket-id instruction and answer with the line number still get
     measured instead of discarded (live-fire fix 2026-08-22).
+
+    null_allowed=False (forced-choice C3 conditions): a "product_id": null answer
+    is a PARSE FAILURE that feeds the retry loop, not a valid decline — a silent
+    ok-null here poisoned run ba545a33 (2026-08-23 post-mortem).
     """
     if not isinstance(raw, str):
         return ParsedChoice(None, None, False, "empty response")
@@ -69,6 +74,9 @@ def parse_response(raw: str, valid_skus: set[str],
 
     def finish(choice: object) -> ParsedChoice:
         if choice is None:
+            if not null_allowed:
+                return ParsedChoice(
+                    None, reason, False, "declined although choice was forced")
             return ParsedChoice(None, reason, True)
         if isinstance(choice, str) and choice in valid_skus:
             return ParsedChoice(choice, reason, True)

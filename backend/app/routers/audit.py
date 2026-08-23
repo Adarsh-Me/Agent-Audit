@@ -116,7 +116,14 @@ async def get_audit(run_id: str, session: AsyncSession = Depends(get_session)) -
     done = (await session.execute(
         select(func.count()).select_from(Trial).where(Trial.run_id == run_id)
     )).scalar()
-    eta_s = max(0, int((run.trials_total or 640) - done)) * 0.35 if run.status == "running" else 0
+    # ETA from elapsed-average throughput (cache fast-forwards make the early
+    # rate optimistic, but it converges) — the old fixed 0.35 s/trial claimed
+    # "168s left" while ~75 minutes of live calls remained (ba545a33).
+    eta_s = None
+    if run.status == "running" and done and run.started_at is not None:
+        elapsed = (datetime.now(timezone.utc) - run.started_at).total_seconds()
+        if elapsed > 30:
+            eta_s = max(0, int((run.trials_total or 640) * (elapsed / done) - elapsed))
     return {
         "run_id": run.id,
         "status": run.status,

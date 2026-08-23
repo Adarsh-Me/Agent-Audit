@@ -85,7 +85,7 @@ export interface AuditStatusResponse {
   trials_done: number;
   trials_total: number | null;
   cost_usd: number;
-  eta_s: number;
+  eta_s: number | null;
   parent_run_id: string | null;
   type: 'audit' | 'rerun';
   abort_reason?: string | null;

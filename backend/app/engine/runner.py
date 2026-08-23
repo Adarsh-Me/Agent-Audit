@@ -11,12 +11,15 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import random
+import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Awaitable, Callable
 
 from sqlalchemy import select
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.config import get_settings
@@ -32,7 +35,16 @@ from pathlib import Path
 
 ProgressCb = Callable[[dict], Awaitable[None]]
 
+logger = logging.getLogger(__name__)
+
 DEMO_ROOT = Path(__file__).resolve().parents[3] / "demo-store"
+
+# Trial-batch flush cadence: persist at least this often so a mid-run crash can
+# never lose more than FLUSH_TRIALS executed trials, and the dashboard counter
+# moves smoothly instead of jumping in 40-trial cliffs (ba545a33 post-mortem).
+FLUSH_TRIALS = 20
+FLUSH_INTERVAL_S = 45.0
+COMMIT_RETRY_DELAYS: tuple[float, ...] = (1.0, 2.0, 4.0)
 
 
 def _consume_task_exception(task: "asyncio.Task") -> None:
@@ -77,6 +89,43 @@ class RunnerDeps:
     registry: ModelRegistry = field(default_factory=load_model_registry)
     client: OpenRouterClient | None = None
     cost_cap_usd: float | None = None  # overrides settings (tests / budget experiments)
+
+
+def _assert_batch_semantics(batch: list[Trial]) -> None:
+    """Integrity gate run BEFORE persistence, outside any error handler — a
+    forced-choice trial recorded as parsed-with-no-pick must never reach the DB,
+    and a genuine violation must never masquerade as (or hide) a database error."""
+    for t in batch:
+        if t.parse_ok and t.choice is None and not t.null_allowed:
+            raise AssertionError(
+                f"choice-semantics violation: {t.model} {t.persona_id} "
+                f"{t.condition} cached={t.from_cache}")
+
+
+async def _persist_batch(session_factory: async_sessionmaker[AsyncSession],
+                         run_id: str, batch: list[Trial], total_usd: float) -> None:
+    """Insert trials + update run cost. Transient SQLite write failures
+    (lock contention, OneDrive sync interference) are retried with backoff;
+    anything else propagates with its REAL identity intact."""
+    for attempt, wait in enumerate((0.0,) + COMMIT_RETRY_DELAYS):
+        if wait:
+            await asyncio.sleep(wait)
+        try:
+            async with session_factory() as s2:
+                s2.add_all(batch)
+                await s2.commit()
+                run = await s2.get(Run, run_id)
+                assert run
+                run.cost_usd = round(total_usd, 4)
+                await s2.commit()
+            return
+        except OperationalError:
+            if attempt == len(COMMIT_RETRY_DELAYS):
+                logger.exception("trial batch commit failed after %d retries — "
+                                 "run %s", len(COMMIT_RETRY_DELAYS), run_id)
+                raise
+            logger.warning("trial batch commit failed (attempt %d) — retrying",
+                           attempt + 1)
 
 
 def load_baseline_order_fixture() -> list[str]:
@@ -203,6 +252,7 @@ class Runner:
             batch: list[Trial] = []
             order_cache: dict[str, tuple[list[str], str]] = {}
             framing_variants = P.load_framing_variants()
+            last_flush = time.monotonic()
 
             for spec in trials:
                 if ledger.capped:
@@ -256,24 +306,18 @@ class Runner:
                     parse_ok=outcome.parse_ok,
                 ))
                 done += 1
-                if done % 40 == 0 or done == len(trials):
+                if (len(batch) >= FLUSH_TRIALS or done == len(trials)
+                        or time.monotonic() - last_flush >= FLUSH_INTERVAL_S):
+                    _assert_batch_semantics(batch)
                     try:
-                        async with self.session_factory() as s2:
-                            s2.add_all(batch)
-                            await s2.commit()
-                            run = await s2.get(Run, run_id)
-                            assert run
-                            run.cost_usd = round(ledger.total_usd, 4)
-                            await s2.commit()
+                        await _persist_batch(self.session_factory, run_id, batch,
+                                             ledger.total_usd)
                     except Exception:
-                        for t in batch:
-                            if (t.parse_ok and t.choice is None and not t.null_allowed):
-                                raise AssertionError(
-                                    f"choice-semantics violation: {t.model} {t.persona_id} "
-                                    f"{t.condition} cached={t.from_cache}"
-                                )
+                        logger.exception("trial batch persistence failed — run %s",
+                                         run_id)
                         raise
                     batch.clear()
+                    last_flush = time.monotonic()
                     await emit({"type": "progress", "done": done, "total": len(trials),
                                 "cost_usd": round(ledger.total_usd, 4)})
 
@@ -315,8 +359,12 @@ class Runner:
             cached = await cache_get(session, phash, spec.model_version)
         if cached is not None:
             choice = cached.get("product_id")
-            ok = choice is None or choice in valid_skus
-            return TrialOutcome(choice, cached.get("reason"), 0, True, ok)
+            if not (choice is None and not spec.null_allowed):
+                ok = choice is None or choice in valid_skus
+                return TrialOutcome(choice, cached.get("reason"), 0, True, ok)
+            # A cached decline is only legitimate for null-allowed conditions —
+            # replaying one into a forced-choice trial would re-poison the batch.
+            # Ignore the entry and re-ask live (ba545a33 post-mortem).
 
         entry = self.deps.registry.by_id(spec.model)
         feedback: str | None = None
@@ -337,7 +385,8 @@ class Runner:
                 return TrialOutcome(None, f"provider error: {exc}", 0, False, False)
             ledger.add(spec.model, resp.cost_usd)
             last = resp
-            parsed = parse_response(resp.content, valid_skus, ordinal_map)
+            parsed = parse_response(resp.content, valid_skus, ordinal_map,
+                                    null_allowed=spec.null_allowed)
             if parsed.parse_ok:
                 async with self.session_factory() as session:
                     await cache_put(session, phash, spec.model_version,
