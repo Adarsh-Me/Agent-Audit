@@ -197,9 +197,9 @@ export default function RevenuePage() {
                   </span>
                 </div>
                 <div className='text-muted-foreground mt-3 text-xs'>
-                  <SourceChip kind='scenario' /> f_task{' '}
+                  <SourceChip kind='scenario' /> adjusted by the walk-away rate{' '}
                   <Ci v={data.inputs.f_task.value} lo={data.inputs.f_task.ci_low} hi={data.inputs.f_task.ci_high} fmt={n => n.toFixed(4)} />{' '}
-                  <SourceChip kind='measured' label='[measured · 640 trials]' />
+                  <SourceChip kind='measured' label='[measured · 640 shopping missions]' />
                 </div>
               </CardContent>
             </Card>
@@ -308,7 +308,7 @@ export default function RevenuePage() {
                     </TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell className='text-sm'>Task failure rate (F_task)</TableCell>
+                    <TableCell className='text-sm'>Walk-away rate (agents who bought nothing)</TableCell>
                     <TableCell className='font-mono text-xs tabular-nums'>
                       <Ci
                         v={data.inputs.f_task.value * 100}
@@ -318,7 +318,7 @@ export default function RevenuePage() {
                       />
                     </TableCell>
                     <TableCell>
-                      <SourceChip kind='measured' label='[measured · 640 trials]' />
+                      <SourceChip kind='measured' label='[measured · 640 shopping missions]' />
                     </TableCell>
                     <TableCell className='text-muted-foreground max-w-72 text-xs'>
                       {data.inputs.f_task.note}

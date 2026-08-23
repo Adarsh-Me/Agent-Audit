@@ -27,13 +27,13 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
-import { ErrorBox, StatusChip } from '@/components/agentaudit/bits'
+import { ErrorBox, StatusChip, Term } from '@/components/agentaudit/bits'
 import { cn } from '@/lib/utils'
 import { ApiError, listRuns, type RunSummaryRow } from '@/lib/api'
 import { num1, pct, usd } from '@/lib/format'
 
 const STALL_HINT =
-  'Runs whose engine was interrupted (server restart, provider outage) keep every recorded trial — open one to see exactly what was measured before the stop.'
+  'Runs whose engine was interrupted (server restart, provider outage) keep every recorded mission — open one to see exactly what was measured before the stop.'
 
 function since(iso: string | null): string {
   if (!iso) return '—'
@@ -68,17 +68,22 @@ export function RunsDashboard({ refreshKey = 0 }: { refreshKey?: number }) {
   return (
     <Card>
       <CardHeader>
-        <div className='flex flex-wrap items-center gap-2'>
+        <div className='flex items-center gap-2'>
           <ClockIcon className='text-muted-foreground size-4' />
           <CardTitle className='text-base'>Recent runs</CardTitle>
-          <span className='text-muted-foreground/70 ml-auto text-xs'>{STALL_HINT}</span>
-          <Button variant='ghost' size='icon-sm' onClick={load} title='Refresh'>
+          <Button
+            variant='ghost'
+            size='icon-sm'
+            onClick={load}
+            title='Refresh'
+            className='ml-auto'
+          >
             <RefreshCwIcon />
           </Button>
         </div>
         <CardDescription>
-          Every audit on this backend — outcome, why it stopped, fixes needed, and the
-          mid-run data that was already measured.
+          Every audit on this backend — how far it got, what it found, and fixes to review.{' '}
+          {STALL_HINT}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -98,9 +103,9 @@ export function RunsDashboard({ refreshKey = 0 }: { refreshKey?: number }) {
                 <TableHead>Run</TableHead>
                 <TableHead>Catalog</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Trials</TableHead>
-                <TableHead>Outcome</TableHead>
-                <TableHead>Fixes</TableHead>
+                <TableHead>Progress</TableHead>
+                <TableHead>Early read-out</TableHead>
+                <TableHead>Suggested fixes</TableHead>
                 <TableHead className='text-right'>Cost</TableHead>
               </TableRow>
             </TableHeader>
@@ -147,18 +152,25 @@ export function RunsDashboard({ refreshKey = 0 }: { refreshKey?: number }) {
                         {row.trials_recorded}/{row.trials_total}
                         {row.summary ? (
                           <span className='text-muted-foreground/70 block'>
-                            {row.summary.parse_ok} parsed
+                            {row.summary.parse_ok} usable
                           </span>
                         ) : null}
                       </TableCell>
                       <TableCell className='text-sm tabular-nums'>
                         {row.summary ? (
                           <span>
-                            score <strong>{num1(row.summary.score)}</strong> · F
-                            <sub>task</sub> {pct(row.summary.f_task)}
+                            <Term
+                              tip='Store score from 0–100 — how easily AI agents can see, pick, and buy your products.'
+                            >
+                              AgentReady <strong>{num1(row.summary.score)}</strong>
+                            </Term>{' '}
+                            ·{' '}
+                            <Term tip='Share of shopping missions where the agent gave up without buying anything.'>
+                              walk-away {pct(row.summary.f_task)}
+                            </Term>
                           </span>
                         ) : (
-                          <span className='text-muted-foreground/50'>no parsed trials</span>
+                          <span className='text-muted-foreground/50'>nothing measurable yet</span>
                         )}
                       </TableCell>
                       <TableCell>
@@ -201,9 +213,10 @@ export function RunsDashboard({ refreshKey = 0 }: { refreshKey?: number }) {
                                     <>
                                       {' '}
                                       <strong>{row.trials_recorded}</strong> of{' '}
-                                      {row.trials_total} trials were recorded before the stop
+                                      {row.trials_total} shopping missions were completed before
+                                      the stop
                                       {row.summary
-                                        ? ` (${row.summary.parse_ok} parsed and measured)`
+                                        ? ` (${row.summary.parse_ok} gave a usable answer)`
                                         : ''}
                                       .
                                     </>
@@ -216,28 +229,34 @@ export function RunsDashboard({ refreshKey = 0 }: { refreshKey?: number }) {
                               <div className='grid gap-3 sm:grid-cols-3'>
                                 <div className='rounded-lg border p-3'>
                                   <div className='text-muted-foreground text-[11px] uppercase'>
-                                    AgentReady (point est.)
+                                    AgentReady store score
                                   </div>
                                   <div className='mt-1 text-lg font-semibold tabular-nums'>
                                     {num1(row.summary.score)}
                                   </div>
+                                  <div className='text-muted-foreground/70 mt-0.5 text-[11px]'>
+                                    0–100 · how easily AI agents buy from you
+                                  </div>
                                 </div>
                                 <div className='rounded-lg border p-3'>
                                   <div className='text-muted-foreground text-[11px] uppercase'>
-                                    F_task (measured subset)
+                                    Walk-away rate
                                   </div>
                                   <div className='mt-1 text-lg font-semibold tabular-nums'>
                                     {pct(row.summary.f_task)}
                                   </div>
+                                  <div className='text-muted-foreground/70 mt-0.5 text-[11px]'>
+                                    missions where the agent bought nothing
+                                  </div>
                                 </div>
                                 <div className='rounded-lg border p-3'>
                                   <div className='text-muted-foreground text-[11px] uppercase'>
-                                    Model health
+                                    AI model health
                                   </div>
                                   <div className='mt-1 flex flex-col gap-0.5 font-mono text-[11px]'>
                                     {Object.entries(row.summary.models).map(([m, s]) => (
                                       <span key={m}>
-                                        {m}: {s.parse_ok}/{s.attempts} ok
+                                        {m}: {s.parse_ok}/{s.attempts} missions answered
                                       </span>
                                     ))}
                                   </div>
@@ -252,7 +271,7 @@ export function RunsDashboard({ refreshKey = 0 }: { refreshKey?: number }) {
                                 <Button size='sm' render={<Link href={`/audit/${row.run_id}/results`} />}>
                                   {row.status === 'done'
                                     ? 'View results'
-                                    : 'View audited mid-data'}
+                                    : 'View data measured so far'}
                                 </Button>
                               ) : null}
                               {row.status === 'done' || row.status === 'partial' ? (

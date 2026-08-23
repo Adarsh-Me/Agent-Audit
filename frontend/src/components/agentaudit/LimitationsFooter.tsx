@@ -9,15 +9,15 @@ import {
 } from '@/components/ui/card'
 
 const PROVEN = [
-  'Full 640-trial audit matrix executed live, end-to-end, against real imported Shopify catalogs',
-  'Measured: task-failure rate (F_task), demand concentration (HHI), position bias with permutation tests, framing sensitivity',
-  'Every headline figure carries its 95% confidence interval — bootstrap B = 2,000',
-  'Failure handling: server-restart reaper, provider circuit breaker, labeled abort reasons — partial runs never render as complete',
-  'Razorpay payment-link plumbing with HMAC webhooks and idempotency keys (test mode)'
+  'Full 640-mission audit executed live, end-to-end, against real imported Shopify catalogs',
+  'Measured: walk-away rate (agents buying nothing), demand concentration, position bias with statistical significance tests, wording sensitivity',
+  'Every headline figure shows its 95% likely range — computed from 2,000 bootstrap resamples',
+  'Failure handling: server-restart recovery, AI-provider circuit breaker, labeled stop reasons — partial runs never render as complete',
+  'Razorpay payment-link plumbing with verified webhooks and duplicate protection (test mode)'
 ]
 
 const PENDING = [
-  'Multi-model results await OpenRouter credits — recent runs are effectively single-model (ox-alpha); free-tier peers were rate-limited to zero parsed trials',
+  'Multi-model results await OpenRouter credits — recent runs are effectively single-model; free-tier peer models were rate-limited to zero usable answers',
   'A live captured payment on a deployed URL awaits Razorpay test keys (local walkthrough: Docs/RAZORPAY_SETUP.md)',
   'Store imports are point-in-time snapshots of the public product feed — no HTML scraping, no live-storefront reads',
   'Correlation, not causation: the audit measures association between listing quality and agent choice under scenario assumptions you set'

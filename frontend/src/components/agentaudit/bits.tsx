@@ -31,6 +31,21 @@ export function StatCard({
   )
 }
 
+/**
+ * Technical term with a plain-language explanation on hover — dotted underline
+ * signals "hover me" so merchants get definitions without leaving the page.
+ */
+export function Term({ children, tip }: { children: ReactNode; tip: string }) {
+  return (
+    <span
+      className='decoration-dotted underline-offset-4 cursor-help underline'
+      title={tip}
+    >
+      {children}
+    </span>
+  )
+}
+
 /** SCHEMA §7 error envelope rendered as an alert — code always visible. */
 export function ErrorBox({
   code,

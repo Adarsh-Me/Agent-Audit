@@ -114,7 +114,7 @@ export default function LandingPage() {
       <section className='rounded-xl border bg-gradient-to-b from-primary/10 via-primary/5 to-transparent px-8 py-12'>
         <Badge variant='outline' className='border-primary/30 bg-primary/10 mb-6 h-6 px-2.5 text-xs text-[oklch(0.78_0.12_258)]'>
           <FlaskConicalIcon data-icon='inline-start' />
-          640 randomized controlled trials · real LLM agents
+          640 controlled shopping missions · real AI agents
         </Badge>
         <h1 className='font-pixel max-w-3xl text-2xl leading-snug text-balance sm:text-3xl'>
           Can AI shopping agents actually buy from you?
@@ -133,8 +133,8 @@ export default function LandingPage() {
             {phase === 'starting' ? 'Queuing…' : 'Run the demo audit'}
             <ArrowRightIcon data-icon='inline-end' />
           </Button>
-          <span className='text-muted-foreground font-mono text-xs'>
-            ~2–15 min · $0 on pinned free models · hard cap $30/run
+          <span className='text-muted-foreground text-xs'>
+            Takes ~2–15 min · the demo costs $0 · spend is hard-capped at $30 per audit
           </span>
         </div>
         {lastRun ? (
@@ -167,8 +167,9 @@ export default function LandingPage() {
               <Badge className='h-5 text-xs'>RECOMMENDED</Badge>
             </div>
             <CardDescription className='leading-relaxed'>
-              40 products · 4 categories · controlled data-quality tiers (rich / medium / starved).
-              The fastest way to see every screen with real measured numbers.
+              40 products · 4 categories · listing quality deliberately varied (rich, thin, minimal)
+              so you can see what the audit catches. The fastest way to see every screen with real
+              measured numbers.
             </CardDescription>
           </CardHeader>
         </Card>
@@ -293,8 +294,8 @@ export default function LandingPage() {
         <AlertDescription>
           Store imports read the public product feed — a snapshot at import time. No HTML scraping,
           no login, nothing touches the live storefront or its checkout. Numbers come only from
-          recorded trials in this run; nothing is estimated client-side. Every headline figure
-          carries its confidence interval.
+          real shopping missions recorded in this run — nothing is estimated in your browser. Every
+          headline figure shows its likely range.
         </AlertDescription>
       </Alert>
 

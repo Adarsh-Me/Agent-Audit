@@ -28,6 +28,7 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
+import { personaLabel } from '@/lib/glossary'
 import { ErrorBox, PanelSkeleton, StatCard, TierChip } from '@/components/agentaudit/bits'
 import {
   ApiError,
@@ -81,7 +82,7 @@ function Quote({ q }: { q: { model: string; persona_id: string; text: string } }
     <blockquote className='border-l-2 border-primary/40 pl-3'>
       <p className='text-sm italic'>&ldquo;{q.text}&rdquo;</p>
       <footer className='text-muted-foreground mt-1 font-mono text-[11px]'>
-        {q.model} · {q.persona_id}
+        {q.model} · {personaLabel(q.persona_id)}
       </footer>
     </blockquote>
   )
@@ -331,7 +332,7 @@ export default function CatalogPage() {
           <CardHeader>
             <CardTitle className='text-base'>Why agents walk away</CardTitle>
             <CardDescription>
-              Verbatim reasoning from trials where the agent chose nothing — the
+              Verbatim reasoning from shopping missions where the agent bought nothing — the
               demand these listings are losing outright.
             </CardDescription>
           </CardHeader>
@@ -345,8 +346,8 @@ export default function CatalogPage() {
 
       {!evidence && (
         <p className='text-muted-foreground text-center text-xs'>
-          Agent evidence appears after your first audit run — it quotes real model
-          reasoning from the trial matrix.
+          Agent evidence appears after your first audit run — it quotes real AI
+          reasoning from the controlled shopping missions.
         </p>
       )}
     </div>

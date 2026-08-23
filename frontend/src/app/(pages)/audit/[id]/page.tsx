@@ -23,11 +23,19 @@ import {
   type SseTrialEvent
 } from '@/lib/api'
 import { usd } from '@/lib/format'
+import { conditionShort, personaLabel } from '@/lib/glossary'
 import { rememberRun } from '@/lib/runs'
 import { cn } from '@/lib/utils'
 
 const PARTIAL_BANNER =
-  'Partial run — cost cap hit. Numbers below are real but incomplete.'
+  'Partial run — the spend cap was reached. Numbers below are real but incomplete.'
+
+/** "162s" → "2m 42s" — merchants shouldn't parse raw seconds. */
+function fmtEta(totalSeconds: number): string {
+  if (totalSeconds >= 3600) return `~${Math.floor(totalSeconds / 3600)}h ${Math.round((totalSeconds % 3600) / 60)}m`
+  if (totalSeconds >= 60) return `~${Math.floor(totalSeconds / 60)}m ${Math.round(totalSeconds % 60)}s`
+  return `~${Math.round(totalSeconds)}s`
+}
 const MAX_SSE_FAILURES = 3
 const POLL_MS = 3000
 /** No recorded progress for this long while "running" ⇒ the engine task is
@@ -221,9 +229,9 @@ export default function ProgressPage() {
       ) : null}
       {stalled && (status === 'running' || status === 'queued') ? (
         <div className='rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-400'>
-          <strong>No progress for {Math.round(STALL_AFTER_MS / 1000)}s — the engine task may have been
-          interrupted</strong> (server restart or provider outage). {done} trials are recorded and
-          auditable.{' '}
+          <strong>No progress for {Math.round(STALL_AFTER_MS / 1000)}s — the engine may have been
+          interrupted</strong> (server restart or AI-provider outage). {done} shopping missions are
+          recorded and auditable.{' '}
           <Link href={`/audit/${runId}/results`} className='underline underline-offset-4'>
             View the data audited so far →
           </Link>
@@ -231,7 +239,8 @@ export default function ProgressPage() {
       ) : null}
       {status === 'failed' ? (
         <div className='rounded-lg border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-700 dark:text-rose-400'>
-          Run failed — provider hard-fail. No charge beyond completed trials.{' '}
+          The run stopped early — the AI provider reported an unrecoverable error. You are only
+          charged for shopping missions that already completed.{' '}
           <Link href='/' className='underline underline-offset-4'>
             Start a new audit
           </Link>{' '}
@@ -276,22 +285,24 @@ export default function ProgressPage() {
           </Progress>
           <div className='flex justify-between text-xs'>
             <span className='font-mono tabular-nums'>
-              {done} / {total} trials · {Math.round(pctDone * 100)}%
+              {done} of {total} shopping missions · {Math.round(pctDone * 100)}%
             </span>
             {etaS > 0 ? (
-              <span className='text-muted-foreground font-mono tabular-nums'>ETA ~{Math.round(etaS)}s</span>
+              <span className='text-muted-foreground font-mono tabular-nums'>
+                {fmtEta(etaS)} remaining
+              </span>
             ) : null}
           </div>
 
           <Separator />
 
           <div className='grid gap-3 sm:grid-cols-3'>
-            <StatCard k='Trials landed' v={done} sub={`of ${total} in the full matrix`} />
-            <StatCard k='Spend so far' v={usd(costUsd)} sub='hard cap $30 → partial, never silent' />
+            <StatCard k='Missions completed' v={done} sub={`of ${total} in the full experiment`} />
+            <StatCard k='AI spend so far' v={usd(costUsd)} sub='hard-capped at $30 — stops honestly, never overspends' />
             <StatCard
-              k='Conditions'
-              v='C1 · C2 · C3'
-              sub='baseline / shuffled / reframed copy'
+              k='Three ways listings are shown'
+              v='Order · Shuffle · Reworded'
+              sub='each isolates a different visibility problem'
             />
           </div>
         </CardContent>
@@ -301,15 +312,16 @@ export default function ProgressPage() {
         {/* ---------- live ticker ---------- */}
         <Card>
           <CardHeader>
-            <CardTitle className='text-base'>Live trial ticker</CardTitle>
+            <CardTitle className='text-base'>Live shopper feed</CardTitle>
             <CardDescription>
-              Last 6 trials as they land. Amber rows chose &ldquo;nothing fits&rdquo;.
+              Each row is one simulated shopper finishing a mission. Amber rows said
+              &ldquo;nothing fits&rdquo;.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className='bg-muted/40 flex flex-col gap-1 rounded-lg border p-3 font-mono text-xs'>
               {ticker.length === 0 ? (
-                <span className='text-muted-foreground/70'>waiting for trials…</span>
+                <span className='text-muted-foreground/70'>waiting for shoppers…</span>
               ) : (
                 ticker.map((t, i) => (
                   <div
@@ -319,14 +331,25 @@ export default function ProgressPage() {
                       t.choice === null && 'text-amber-600 dark:text-amber-400'
                     )}
                   >
-                    <span className='text-muted-foreground w-24 truncate'>{t.model}</span>
-                    <span className='w-10'>{t.persona_id}</span>
-                    <span className='text-muted-foreground w-16'>{t.condition}</span>
-                    <span>→</span>
-                    <span className={cn(t.choice === null && 'italic')}>
-                      {t.choice ?? 'null (nothing fits)'}
+                    <span className='text-muted-foreground w-28 truncate' title={t.model}>
+                      {t.model}
                     </span>
-                    <span className='text-muted-foreground/60 ml-auto'>{t.latency_ms}ms</span>
+                    <span className='w-32 truncate' title={`shopper type ${t.persona_id}`}>
+                      {personaLabel(t.persona_id)}
+                    </span>
+                    <span className='text-muted-foreground w-28 truncate' title={t.condition}>
+                      {conditionShort(t.condition)}
+                    </span>
+                    <span>→</span>
+                    <span className={cn('truncate', t.choice === null && 'italic')}>
+                      {t.choice ?? 'bought nothing'}
+                    </span>
+                    <span
+                      className='text-muted-foreground/60 ml-auto'
+                      title='how long the AI took to decide'
+                    >
+                      {(t.latency_ms / 1000).toFixed(1)}s
+                    </span>
                   </div>
                 ))
               )}
@@ -342,26 +365,29 @@ export default function ProgressPage() {
           </CardHeader>
           <CardContent className='flex flex-col gap-3 text-sm'>
             <p>
-              <strong>C1 baseline</strong>{' '}
+              <strong>Normal order</strong>{' '}
               <span className='text-muted-foreground'>
-                — catalog presented in its normal order, 3 replicate seeds.
+                — your catalog exactly as it appears today, shown three times for reliability{' '}
+                <span className='font-mono'>(C1)</span>.
               </span>
             </p>
             <p>
-              <strong>C2 shuffled</strong>{' '}
+              <strong>Shuffled order</strong>{' '}
               <span className='text-muted-foreground'>
-                — randomized listing order isolates position bias.
+                — same catalog, random order. Reveals whether listing position decides what agents
+                buy <span className='font-mono'>(C2)</span>.
               </span>
             </p>
             <p>
-              <strong>C3 rewritten copy</strong>{' '}
+              <strong>Reworded copy</strong>{' '}
               <span className='text-muted-foreground'>
-                — information-equivalent rewrites isolate framing bias.
+                — same facts, different wording. Reveals whether phrasing steers agent choices{' '}
+                <span className='font-mono'>(C3)</span>.
               </span>
             </p>
             <p className='text-muted-foreground'>
-              1 in 3 trials may return &ldquo;nothing fits&rdquo; — that&rsquo;s the coverage
-              metric.
+              Some shoppers are allowed to say &ldquo;nothing fits&rdquo; — how often that happens
+              is your walk-away rate: the share of AI customers who give up on your store.
             </p>
           </CardContent>
         </Card>

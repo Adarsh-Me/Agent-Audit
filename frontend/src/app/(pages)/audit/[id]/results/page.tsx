@@ -28,6 +28,7 @@ import {
   SourceChip,
   StatCard,
   StatusChip,
+  Term,
   TierChip
 } from '@/components/agentaudit/bits'
 import { Ci } from '@/components/agentaudit/ci'
@@ -43,11 +44,14 @@ import {
   type RevenueResponse
 } from '@/lib/api'
 import { inr, num1, num2, pct, usd } from '@/lib/format'
+import { personaLabel } from '@/lib/glossary'
 import { getRerunOf } from '@/lib/runs'
 
-const PARTIAL_BANNER = 'Partial run — cost cap hit. Numbers below are real but incomplete.'
+const PARTIAL_BANNER = 'Partial run — the spend cap was reached. Numbers below are real but incomplete.'
 const STRIP_CAPTION =
-  'Scenario model. Measured: task-failure rate, concentration, remediation delta. Assumed: agent-traffic share — you set it.'
+  'How to read this: failure rate and demand concentration are measured from real agent trials; the traffic share is a scenario you set.'
+/** Friendly wording for the confidence-interval tooltips that repeat page-wide. */
+const CI_TIP = 'Likely range for the true value (95% confidence) — narrower means more certainty.'
 const SLIDER_VALUES = [0.01, 0.05, 0.1, 0.2]
 const DEFAULT_S_AGENT = 0.2
 /** Fair share = 1/N (N=40 demo SKUs) = 2.5% */
@@ -190,31 +194,33 @@ export default function ResultsPage() {
 
       {status === 'failed' ? (
         <div className='rounded-lg border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-700 dark:text-rose-400'>
-          <strong>This run failed partway — the numbers below are the {report.trials.total}{' '}
-          trials recorded before the stop.</strong>{' '}
+          <strong>This run stopped early — the numbers below come from the {report.trials.total}{' '}
+          shopping missions completed before the stop.</strong>{' '}
           {abortReason ? <span>Reason: {abortReason}.</span> : null} Every figure is computed
-          only from recorded trials and carries its interval.
+          only from those completed missions and shows its likely range.
         </div>
       ) : null}
 
       {/* ---------- headline strip ---------- */}
-      <Card className='sticky top-14 z-30'>
+      <Card>
         <CardContent className='flex flex-col gap-4 py-5'>
           <div className='grid items-center gap-6 md:grid-cols-3'>
             <div className='flex items-center gap-4'>
               <ScoreDial score={report.score.value} lo={report.score.ci_low} hi={report.score.ci_high} size={104} />
               <div>
                 <div className='text-muted-foreground text-xs font-medium tracking-wide uppercase'>
-                  AgentReady Score
+                  <Term tip='One number for how easily AI shopping agents can find, trust, and buy from your catalog. Higher = more agent-ready.'>
+                    AgentReady Score
+                  </Term>
                 </div>
                 <div
                   className='text-muted-foreground mt-1 font-mono text-xs'
-                  title='95% confidence interval, persona-cluster bootstrap, B = 2,000'
+                  title={CI_TIP}
                 >
-                  [{report.score.ci_low.toFixed(1)} – {report.score.ci_high.toFixed(1)}]
+                  typical range [{report.score.ci_low.toFixed(1)} – {report.score.ci_high.toFixed(1)}]
                 </div>
                 <div className='mt-2 flex flex-wrap gap-1.5'>
-                  <SourceChip kind='measured' label='640 trials' />
+                  <SourceChip kind='measured' label={`${report.trials.total} simulated shopping missions`} />
                   <StatusChip status={report.status} />
                 </div>
               </div>
@@ -222,13 +228,16 @@ export default function ResultsPage() {
 
             <div>
               <div className='text-muted-foreground text-xs font-medium tracking-wide uppercase'>
-                Revenue at Risk /mo @ {(sAgent * 100).toFixed(0)}%
+                Revenue at risk / month{' '}
+                <Term tip='If AI agents drive the traffic share you pick below, this is the monthly revenue affected when agents cannot complete a purchase on your store.'>
+                  @ {(sAgent * 100).toFixed(0)}% agent traffic
+                </Term>
               </div>
               {baseRar ? (
                 <>
                   <div
                     className='mt-1 text-2xl font-semibold tabular-nums'
-                    title='95% confidence interval, persona-cluster bootstrap, B = 2,000'
+                    title={CI_TIP}
                   >
                     {inr(baseRar.value * rarScale)}{' '}
                     <span className='text-muted-foreground font-mono text-sm font-normal'>
@@ -236,11 +245,14 @@ export default function ResultsPage() {
                     </span>
                   </div>
                   <div className='text-muted-foreground mt-1.5 text-xs'>
-                    F_task {pct(report.coverage.f_task.value)}{' '}
+                    Driven by{' '}
+                    <Term tip='The measured share of shopping missions where the AI agent bought nothing — e.g. no listing matched its client’s needs or it couldn’t verify price/availability.'>
+                      walk-away rate {pct(report.coverage.f_task.value)}
+                    </Term>{' '}
                     <span className='font-mono'>
                       [{pct(report.coverage.f_task.ci_low)} – {pct(report.coverage.f_task.ci_high)}]
                     </span>{' '}
-                    <SourceChip kind='measured' /> · S = {(sAgent * 100).toFixed(0)}%{' '}
+                    <SourceChip kind='measured' /> · traffic share is your assumption{' '}
                     <SourceChip kind='assumed' />
                   </div>
                 </>
@@ -249,13 +261,13 @@ export default function ResultsPage() {
 
             <div>
               <div className='text-muted-foreground text-xs font-medium tracking-wide uppercase'>
-                Recoverable
+                Recoverable revenue
               </div>
               {recoverable ? (
                 <>
                   <div
                     className='mt-1 text-2xl font-semibold text-emerald-600 tabular-nums dark:text-emerald-400'
-                    title='95% confidence interval, persona-cluster bootstrap, B = 2,000'
+                    title={CI_TIP}
                   >
                     {inr(recoverable.value)}/mo{' '}
                     <span className='text-muted-foreground font-mono text-sm font-normal'>
@@ -263,13 +275,13 @@ export default function ResultsPage() {
                     </span>
                   </div>
                   <div className='mt-1.5 flex flex-wrap items-center gap-1.5'>
-                    <SourceChip kind='verified' label='verified re-run' />
+                    <SourceChip kind='verified' label='proven by re-run after fixes' />
                     {rerunId ? (
                       <Link
                         href={`/delta/${rerunId}`}
                         className='text-primary text-xs underline underline-offset-4'
                       >
-                        see verification →
+                        see before → after →
                       </Link>
                     ) : null}
                   </div>
@@ -277,7 +289,9 @@ export default function ResultsPage() {
               ) : (
                 <>
                   <div className='text-muted-foreground/60 mt-1 text-2xl font-semibold'>—</div>
-                  <div className='text-muted-foreground/70 text-xs'>(after remediation re-run)</div>
+                  <div className='text-muted-foreground/70 text-xs'>
+                    (appears once fixes are applied and a verification re-run completes)
+                  </div>
                 </>
               )}
             </div>
@@ -285,9 +299,10 @@ export default function ResultsPage() {
 
           <Separator />
 
-          <div className='text-muted-foreground flex flex-wrap items-center gap-4 text-xs'>
+          <div className='text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-2 text-xs'>
             {STRIP_CAPTION}
-            <span className='ml-auto flex items-center gap-2.5'>
+            <span className='ml-auto flex items-center gap-2.5 whitespace-nowrap'>
+              <span className='hidden sm:inline'>Agent share of your traffic:</span>
               <input
                 type='range'
                 min={0}
@@ -309,11 +324,14 @@ export default function ResultsPage() {
       {/* ---------- choice heat table ---------- */}
       <Card>
         <CardHeader>
-          <CardTitle className='text-base'>Choice heat map</CardTitle>
+          <CardTitle className='text-base'>Where agent demand landed</CardTitle>
           <CardDescription>
-            How agent demand spread across the catalog. Concentration (HHI, normalized):{' '}
-            <Ci v={report.hhi_norm.value} lo={report.hhi_norm.ci_low} hi={report.hhi_norm.ci_high} fmt={num2} /> —
-            higher means agents pile onto fewer products.
+            How evenly AI shoppers spread their choices across your catalog.{' '}
+            <Term tip='A concentration score from 0 to 1: near 0 means demand spreads evenly across products; near 1 means agents pile onto one or two listings and ignore the rest.'>
+              Concentration:{' '}
+              <Ci v={report.hhi_norm.value} lo={report.hhi_norm.ci_low} hi={report.hhi_norm.ci_high} fmt={num2} />
+            </Term>{' '}
+            — the higher it is, the more your sales depend on a couple of lucky listings.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -346,7 +364,7 @@ export default function ResultsPage() {
                       {inv ? (
                         <span
                           className='inline-flex items-center gap-2'
-                          title='95% confidence interval, persona-cluster bootstrap, B = 2,000'
+                          title={CI_TIP}
                         >
                           <BarTrack value={Math.min(1, inv.share.value * 8)} tone='rose' style={{ width: 56 }} />
                           {pct(inv.share.value)}{' '}
@@ -379,9 +397,9 @@ export default function ResultsPage() {
             </TableBody>
           </Table>
           <p className='text-muted-foreground/70 mt-3 text-xs'>
-            Invisible = 95% CI upper bound below 2.5% fair share · demand share renders where the API
-            reports it (invisible SKUs) · metric: hhi_norm
-            {report.partial ? ` · computed on ${report.trials.total}/640 trials` : ''}
+            &ldquo;Invisible&rdquo; = even in the best case, these products would get a smaller
+            share of agent choices than an equal split allows (1 in {Math.round(1 / FAIR_SHARE)}).
+            {report.partial ? ` Figures computed on the ${report.trials.total} shopping missions completed before this run stopped.` : ''}
           </p>
         </CardContent>
       </Card>
@@ -389,15 +407,17 @@ export default function ResultsPage() {
       {/* ---------- invisible strip ---------- */}
       <Card>
         <CardHeader>
-          <CardTitle className='text-base'>Invisible to agents</CardTitle>
+          <CardTitle className='text-base'>Products invisible to AI agents</CardTitle>
           <CardDescription>
-            Flagged because the upper bound of their 95% demand-share interval sits below fair share
-            (1/N = 2.5%) — an agent picking uniformly at random would beat them.
+            These listings get statistically fewer agent choices than an even split would give
+            them — even at the optimistic end of the range. An AI shopper picking completely at
+            random would out-sell them. Check the Catalog page for what&rsquo;s hiding them from
+            agents.
           </CardDescription>
         </CardHeader>
         <CardContent>
           {report.invisible_skus.length === 0 ? (
-            <p className='text-sm text-emerald-600 dark:text-emerald-400'>None flagged in this run.</p>
+            <p className='text-sm text-emerald-600 dark:text-emerald-400'>None flagged in this run — every product is reachable by agents.</p>
           ) : (
             <div className='grid gap-3 sm:grid-cols-2 lg:grid-cols-4'>
               {report.invisible_skus.map(s => (
@@ -405,17 +425,14 @@ export default function ResultsPage() {
                   key={s.sku}
                   k={s.sku}
                   v={
-                    <span
-                      title='95% confidence interval, persona-cluster bootstrap, B = 2,000'
-                      className='font-mono'
-                    >
+                    <span title={CI_TIP} className='font-mono'>
                       {pct(s.share.value)}{' '}
                       <span className='text-muted-foreground text-sm'>
                         [{pct(s.share.ci_low)} – {pct(s.share.ci_high)}]
                       </span>
                     </span>
                   }
-                  sub={<span className='text-rose-600 dark:text-rose-400'>CI-upper &lt; 1/N → invisible</span>}
+                  sub={<span className='text-rose-600 dark:text-rose-400'>share of agent choices — best case still below fair</span>}
                 />
               ))}
             </div>
@@ -426,16 +443,18 @@ export default function ResultsPage() {
       {/* ---------- framing + stability + position ---------- */}
       <Card>
         <CardHeader>
-          <CardTitle className='text-base'>Framing sensitivity</CardTitle>
+          <CardTitle className='text-base'>Wording changes what agents pick</CardTitle>
           <CardDescription>
-            Rewriting listing copy (condition C3-A vs C3-B) shifts agent choices. Mean shift across
-            the framing subset:{' '}
+            We rewrote each listing&rsquo;s wording — same facts, different phrasing — and measured
+            how agent choices moved. Average shift across rewritten listings:{' '}
             <Ci
               v={report.framing.mean_delta.value}
               lo={report.framing.mean_delta.ci_low}
               hi={report.framing.mean_delta.ci_high}
               fmt={pct}
             />
+            . A large shift means your sales depend on how things are worded, not just what they
+            are.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -443,10 +462,10 @@ export default function ResultsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>SKU</TableHead>
-                  <TableHead>Share A (control copy)</TableHead>
-                  <TableHead>Share B (variant copy)</TableHead>
-                  <TableHead>Δ</TableHead>
+                  <TableHead>Product</TableHead>
+                  <TableHead>Chosen with original wording</TableHead>
+                  <TableHead>Chosen with reworded version</TableHead>
+                  <TableHead>Shift</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -472,7 +491,7 @@ export default function ResultsPage() {
               </TableBody>
             </Table>
           ) : (
-            <p className='text-muted-foreground text-sm'>No framing-subset data reported for this catalog.</p>
+            <p className='text-muted-foreground text-sm'>No wording-test data reported for this catalog.</p>
           )}
         </CardContent>
       </Card>
@@ -481,9 +500,10 @@ export default function ResultsPage() {
         {/* ---------- stability ---------- */}
         <Card>
           <CardHeader>
-            <CardTitle className='text-base'>Stability across models</CardTitle>
+            <CardTitle className='text-base'>Do different AI models agree?</CardTitle>
             <CardDescription>
-              Pairwise cosine similarity of product rankings between models. Mean:{' '}
+              How closely each pair of AI models ranks your products (1.00 = identical taste, 0 =
+              complete disagreement). Average agreement:{' '}
               <Ci
                 v={report.stability.mean.value}
                 lo={report.stability.mean.ci_low}
@@ -495,7 +515,8 @@ export default function ResultsPage() {
           <CardContent className='flex flex-col gap-3'>
             <StabilityMatrix matrix={report.stability.matrix} />
             <p className='text-muted-foreground/70 text-xs'>
-              aligned &gt; 0.8 · moderate 0.5–0.8 · divergent &lt; 0.5 · metric: stability.mean
+              above 0.8 models agree · 0.5–0.8 partial agreement · below 0.5 models disagree — low
+              agreement means there is no single &ldquo;safe&rdquo; optimization for agent visibility.
             </p>
           </CardContent>
         </Card>
@@ -503,15 +524,20 @@ export default function ResultsPage() {
         {/* ---------- position bias ---------- */}
         <Card>
           <CardHeader>
-            <CardTitle className='text-base'>Position bias</CardTitle>
+            <CardTitle className='text-base'>Does listing position decide sales?</CardTitle>
             <CardDescription>
-              Agents favor what&rsquo;s listed first; randomized order (C2) isolates this.
+              We shuffled the listing order randomly and compared — if choices follow position,
+              the first slots have an unfair advantage regardless of product quality.
             </CardDescription>
           </CardHeader>
           <CardContent className='flex flex-col gap-3'>
             <div className='grid grid-cols-3 gap-2 text-sm'>
               <div>
-                <div className='text-muted-foreground text-xs uppercase'>Top-3 capture</div>
+                <div className='text-muted-foreground text-xs uppercase'>
+                  <Term tip='The combined share of agent choices that went to products shown in the first three positions.'>
+                    Top-3 capture
+                  </Term>
+                </div>
                 <Ci
                   v={report.position.top3_capture.value}
                   lo={report.position.top3_capture.ci_low}
@@ -521,21 +547,32 @@ export default function ResultsPage() {
                 />
               </div>
               <div>
-                <div className='text-muted-foreground text-xs uppercase'>Lift vs chance</div>
+                <div className='text-muted-foreground text-xs uppercase'>
+                  <Term tip='How many times more likely a first-position product is picked compared to pure chance.'>
+                    First-slot advantage
+                  </Term>
+                </div>
                 <div className='tabular-nums'>{num1(report.position.lift)}×</div>
               </div>
               <div>
-                <div className='text-muted-foreground text-xs uppercase'>Permutation p</div>
+                <div className='text-muted-foreground text-xs uppercase'>
+                  <Term tip='Statistical test: values below 0.05 mean the first-place advantage is real, not random luck.'>
+                    Is it luck?
+                  </Term>
+                </div>
                 <div className='tabular-nums'>
                   {report.position.p_value < 0.001
-                    ? '< 0.001'
-                    : report.position.p_value.toFixed(4)}
+                    ? 'No (p < 0.001)'
+                    : report.position.p_value < 0.05
+                      ? `No (p = ${report.position.p_value.toFixed(2)})`
+                      : 'Possibly'}
                 </div>
               </div>
             </div>
             <SlotChart perSlot={report.position.per_slot} />
             <p className='text-muted-foreground/70 text-xs'>
-              dashed line = 2.5% fair share per slot · metric: position.top3_capture
+              Each bar is one listing slot; dashed line = the fair share that slot would get by
+              chance.
             </p>
           </CardContent>
         </Card>
@@ -544,9 +581,10 @@ export default function ResultsPage() {
       {/* ---------- coverage ---------- */}
       <Card>
         <CardHeader>
-          <CardTitle className='text-base'>Coverage — &ldquo;nothing fits&rdquo; rate</CardTitle>
+          <CardTitle className='text-base'>How often agents buy nothing</CardTitle>
           <CardDescription>
-            Share of agent tasks that ended with no purchase:{' '}
+            Share of shopping missions that ended with no purchase — the agent found nothing that
+            matched its client&rsquo;s need, or couldn&rsquo;t verify it:{' '}
             <Ci
               v={report.coverage.f_task.value}
               lo={report.coverage.f_task.ci_low}
@@ -554,8 +592,8 @@ export default function ResultsPage() {
               fmt={pct}
               className='text-base font-semibold'
             />{' '}
-            <SourceChip kind='measured' /> — this measured failure rate drives the Revenue-at-Risk
-            model.
+            <SourceChip kind='measured' /> — this measured walk-away rate is what drives the
+            revenue-at-risk estimate.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -564,8 +602,8 @@ export default function ResultsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Persona</TableHead>
-                    <TableHead>Null rate</TableHead>
+                    <TableHead>Shopper profile</TableHead>
+                    <TableHead>Bought nothing</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -574,7 +612,10 @@ export default function ResultsPage() {
                     .slice(0, 5)
                     .map(p => (
                       <TableRow key={p.persona_id}>
-                        <TableCell className='font-mono text-xs'>{p.persona_id}</TableCell>
+                        <TableCell className='text-xs'>
+                          {personaLabel(p.persona_id)}{' '}
+                          <span className='text-muted-foreground font-mono'>({p.persona_id})</span>
+                        </TableCell>
                         <TableCell className='tabular-nums'>{pct(p.null_rate)}</TableCell>
                       </TableRow>
                     ))}
@@ -593,11 +634,11 @@ export default function ResultsPage() {
         <CardContent className='flex flex-col gap-4'>
           <div className='grid gap-3 sm:grid-cols-3'>
             <StatCard
-              k='Trials'
+              k='Shopping missions'
               v={`${report.trials.total}`}
-              sub={`${report.trials.parse_ok} parsed ok · ${report.trials.forced} forced-choice`}
+              sub={`${report.trials.parse_ok} returned a usable choice · ${report.trials.forced} were must-pick scenarios`}
             />
-            <StatCard k='Cost' v={usd(report.cost_usd)} sub='billed provider spend' />
+            <StatCard k='AI cost' v={usd(report.cost_usd)} sub='provider spend, hard-capped — never silent overspend' />
             <StatCard
               k='Run id'
               v={<span className='font-mono text-base'>{report.run_id.slice(0, 8)}</span>}
@@ -608,8 +649,12 @@ export default function ResultsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Model</TableHead>
-                  <TableHead>Parse-failure rate</TableHead>
+                  <TableHead>AI model</TableHead>
+                  <TableHead>
+                    <Term tip='Share of this model&rsquo;s answers that could not be used (garbled, off-catalog, or provider errors). These trials are counted honestly, never dropped silently.'>
+                      Unusable answers
+                    </Term>
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
