@@ -9,10 +9,18 @@ from app.constants import BULK_MODEL_COUNT, FLAGSHIP_MODEL_COUNT
 
 class ModelEntry(BaseModel):
     id: str
+    # Upstream slug. On OpenRouter this is "vendor/model"; on alternate providers
+    # it is the raw model name the provider's API expects.
     openrouter_id: str
     version: str
     json_mode: bool = True
     seed_supported: bool = False
+    # Alternate-provider routing (2026-08-24): empty base_url → OpenRouter.
+    # endpoint selects wire format: "openai" | "anthropic". api_key_env names the
+    # Settings field holding that provider's key (empty → openrouter_api_key).
+    base_url: str = ""
+    endpoint: str = "openai"
+    api_key_env: str = ""
 
 
 class ModelRegistry(BaseModel):

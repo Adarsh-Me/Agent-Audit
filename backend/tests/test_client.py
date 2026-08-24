@@ -83,8 +83,10 @@ async def test_circuit_breaker_opens_after_threshold(entry):
         for _ in range(10):
             with pytest.raises(ProviderError):
                 await client.chat(entry, "p", seed=3)
-        assert client.breakers[entry.openrouter_id].consecutive_failures == 10
-        opened = client.breakers[entry.openrouter_id].open
+        # breaker keys are namespaced by provider origin (2026-08-24 multi-provider)
+        bkey = f"openrouter::{entry.openrouter_id}"
+        assert client.breakers[bkey].consecutive_failures == 10
+        opened = client.breakers[bkey].open
         assert opened
         with pytest.raises(ProviderError, match="circuit breaker open"):
             await client.chat(entry, "p", seed=4)

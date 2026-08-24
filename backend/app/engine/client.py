@@ -146,37 +146,71 @@ class OpenRouterClient:
     def _breaker_for(self, openrouter_id: str) -> CircuitBreaker:
         return self.breakers.setdefault(openrouter_id, CircuitBreaker())
 
+    def _route_for(self, entry: ModelEntry) -> tuple[str, dict[str, str], str]:
+        """Resolve (url, headers, wire-style) for a model entry.
+
+        Empty base_url → OpenRouter OpenAI-format. Alternate providers pick their
+        format via entry.endpoint; anthropic = /v1/messages with x-api-key.
+        """
+        settings = get_settings()
+        key_field = entry.api_key_env or "openrouter_api_key"
+        api_key = getattr(settings, key_field, "") or self._api_key
+        if not entry.base_url:
+            return OPENROUTER_URL, {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            }, "openai"
+        if entry.endpoint == "anthropic":
+            return (f"{entry.base_url}/v1/messages", {
+                "x-api-key": api_key,
+                "anthropic-version": "2023-06-01",
+                "Content-Type": "application/json",
+            }, "anthropic")
+        return (f"{entry.base_url}/v1/chat/completions", {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        }, "openai")
+
     async def chat(self, entry: ModelEntry, prompt: str, seed: int, *,
                    temperature: float = 1.0, system_feedback: str | None = None) -> LLMResponse:
         """One completion. Retries on transport/5xx/timeouts with backoff.
 
         Raises ProviderError on circuit-open or exhausted retries.
         """
-        breaker = self._breaker_for(entry.openrouter_id)
+        breaker = self._breaker_for(f"{entry.base_url or 'openrouter'}::{entry.openrouter_id}")
         if not breaker.allow():
             raise ProviderError(f"circuit breaker open for {entry.openrouter_id}")
 
-        headers = {
-            "Authorization": f"Bearer {self._api_key}",
-            "Content-Type": "application/json",
-        }
+        url, headers, style = self._route_for(entry)
         messages = [{"role": "user", "content": prompt}]
         if system_feedback:
             messages.append({"role": "user", "content": system_feedback})
-        payload: dict = {
-            "model": entry.openrouter_id,
-            "messages": messages,
-            "temperature": temperature,
-            # reasoning-style endpoints otherwise burn minutes (and their whole
-            # output budget) on chain-of-thought before the JSON: measured
-            # 11.8s/452tok -> 2.4s/52tok on a catalog-size prompt (2026-08-22)
-            "max_tokens": 3500,
-            "reasoning": {"effort": "low", "exclude": True},
-        }
-        if entry.json_mode:
-            payload["response_format"] = {"type": "json_object"}
-        if entry.seed_supported:
-            payload["seed"] = seed
+        if style == "anthropic":
+            # Anthropic /v1/messages: no response_format (JSON enforced by the
+            # prompt itself), no seed, no OpenRouter reasoning extension.
+            payload: dict = {
+                "model": entry.openrouter_id,
+                "messages": messages,
+                "temperature": temperature,
+                "max_tokens": 3500,
+            }
+        else:
+            payload = {
+                "model": entry.openrouter_id,
+                "messages": messages,
+                "temperature": temperature,
+                # reasoning-style endpoints otherwise burn minutes (and their whole
+                # output budget) on chain-of-thought before the JSON: measured
+                # 11.8s/452tok -> 2.4s/52tok on a catalog-size prompt (2026-08-22)
+                "max_tokens": 3500,
+            }
+            if not entry.base_url:
+                # OpenRouter-specific extension — alternate gateways may reject it.
+                payload["reasoning"] = {"effort": "low", "exclude": True}
+            if entry.json_mode:
+                payload["response_format"] = {"type": "json_object"}
+            if entry.seed_supported:
+                payload["seed"] = seed
 
         last_exc: Exception | None = None
         for attempt in range(3):
@@ -189,7 +223,7 @@ class OpenRouterClient:
                     # timeouts — wait_for guarantees the attempt terminates so the
                     # run always makes forward progress.
                     resp = await asyncio.wait_for(
-                        self._client.post(OPENROUTER_URL, json=payload, headers=headers),
+                        self._client.post(url, json=payload, headers=headers),
                         timeout=PER_ATTEMPT_CAP_S,
                     )
                     latency_ms = int((time.monotonic() - t0) * 1000)
@@ -202,18 +236,33 @@ class OpenRouterClient:
                     breaker.record_failure()
                     raise ProviderError(f"provider {resp.status_code}: {resp.text[:200]}")
                 data = resp.json()
-                try:
-                    message = data["choices"][0]["message"]
-                except (KeyError, IndexError, TypeError) as exc:
-                    raise ProviderError("malformed completion payload") from exc
-                content = message.get("content")
-                if not isinstance(content, str) or not content.strip():
-                    # reasoning-style models intermittently return content=null with
-                    # everything in `reasoning` — retryable, not a crash
-                    raise ProviderError("empty content (null/blank message)")
-                usage = data.get("usage") or {}
-                ptok = int(usage.get("prompt_tokens") or 0)
-                ctok = int(usage.get("completion_tokens") or 0)
+                if style == "anthropic":
+                    # content is a list of blocks; keep the text ones in order
+                    try:
+                        blocks = data["content"]
+                        content = "".join(
+                            b.get("text", "") for b in blocks
+                            if isinstance(b, dict) and b.get("type") == "text")
+                    except (KeyError, TypeError) as exc:
+                        raise ProviderError("malformed completion payload") from exc
+                    if not isinstance(content, str) or not content.strip():
+                        raise ProviderError("empty content (null/blank message)")
+                    usage = data.get("usage") or {}
+                    ptok = int(usage.get("input_tokens") or 0)
+                    ctok = int(usage.get("output_tokens") or 0)
+                else:
+                    try:
+                        message = data["choices"][0]["message"]
+                    except (KeyError, IndexError, TypeError) as exc:
+                        raise ProviderError("malformed completion payload") from exc
+                    content = message.get("content")
+                    if not isinstance(content, str) or not content.strip():
+                        # reasoning-style models intermittently return content=null with
+                        # everything in `reasoning` — retryable, not a crash
+                        raise ProviderError("empty content (null/blank message)")
+                    usage = data.get("usage") or {}
+                    ptok = int(usage.get("prompt_tokens") or 0)
+                    ctok = int(usage.get("completion_tokens") or 0)
                 cost = estimate_cost_usd(entry.id, ptok, ctok)
                 breaker.record_success()
                 return LLMResponse(

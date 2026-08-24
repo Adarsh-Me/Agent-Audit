@@ -4,6 +4,15 @@
 # ($0.00/1M tok, 256k ctx). Its free pool 429s while the OpenRouter account's
 # free-tier daily cap is exhausted (50 req/day, resets 00:00 UTC); after credits
 # are added (unlocks 1000 free-model req/day) it probes clean.
+# RE-PINNED 2026-08-24: third bulk slot glm moves OFF OpenRouter (0/200 parse_ok
+# across runs 6ee157a7/6b3fd1ea/0e45df57 — pool never opened) onto AiHubMix's
+# coding-glm-5-turbo-free via their Anthropic-compatible /v1/messages. Probed
+# live 2026-08-24: key + model valid on BOTH /v1/messages and /v1/chat/completions.
+# CONSTRAINT (honest): AiHubMix free tier allows only 10 completion attempts per
+# unrecharged account (provider-side message; topup at console.aihubmix.com/topup)
+# — until recharged, bulk-trial duty will produce mostly counted failures after
+# the first ~10 successes. Wiring ships anyway so a recharge flips it live with
+# zero code change.
 #   primary  stealth/ox-alpha            (stealth provider, $0.00/1M tok)
 #   fallback nvidia/nemotron-3.5-lightning:free ($0.00/1M tok)
 # Flagship slots carry the same primary/fallback pair for the P07 checkout demo.
@@ -21,10 +30,13 @@ bulk:
     json_mode: true
     seed_supported: false    # :free endpoints ignore seed; CI absorbs variance
   - id: glm
-    openrouter_id: z-ai/glm-5.2:free
-    version: "glm-5.2:free@2026-08-23"
-    json_mode: true
+    openrouter_id: coding-glm-5-turbo-free
+    version: "coding-glm-5-turbo-free@2026-08-24"
+    json_mode: true          # anthropic wire format has no response_format — JSON enforced by prompt only
     seed_supported: false
+    base_url: https://aihubmix.com
+    endpoint: anthropic
+    api_key_env: aihubmix_api_key
 flagship:
   # version carries a -flagship suffix ON PURPOSE: flagship trials reuse (P07,
   # condition) slots already run by bulk, and the response cache keys on
