@@ -124,4 +124,13 @@ This is a deliverable, not a diary — it demonstrates engineering process to ju
 - **Ops honesty:** two fresh full-matrix demo audits were fired concurrently during this window; both ground through nemotron's re-congested pool with hangs bounded by the 300 s trial cap (counted failures), exactly as designed.
 - **Spent:** $0 (test mode — the ₹999 is simulated money).
 
+## Day 17 — Multi-provider engine; third slot lands on OpenCode Zen (Aug 25)
+
+- **Shipped:** engine now routes per-model across providers — ModelEntry gains `base_url`/`endpoint`/`api_key_env`; Anthropic-style `/v1/messages` support (x-api-key headers, content-block parsing, input/output token mapping); base URLs ending in `/v1` are not doubled; circuit-breaker keys namespaced by provider origin. glm engine id retired: AiHubMix removed entirely after its unrecharged-account cap (refusal-text delivered as HTTP 200) produced 0/200 parse_ok on run d593113f.
+- **New pin:** third bulk slot = `mimo` (mimo-v2.5-free @ https://opencode.ai/zen/v1, OpenAI format). Probed before wiring: key + model + `response_format: json_object` all accepted at $0 — json_object fully suppresses the reasoning model's CoT detour (63 tok → 6 tok answers). Client end-to-end returned exact JSON.
+- **Proven live:** run 428bc860 logged the first productive third-slot trial in project history (mimo 1 parse_ok, real choice, $0). Score 49.0, parse_ok 223/640.
+- **Discovered (honest):** OpenCode Zen free quota is hard-gated — trial #1 succeeded, then 9× 429 and the circuit breaker fail-fast opened for the remaining 189 (by design; docs indicate ~100–200 req/day free tier, likely already exhausted that day). Wiring is correct; throughput is quota-bound.
+- **Decided:** pin stays. Cached mimo successes replay free on every future refire (same accumulation play as nemotron) — each UTC-day reset adds rows without re-billing. Suite 131 green.
+- **Spent:** $0.
+
 
