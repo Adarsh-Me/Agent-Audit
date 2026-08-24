@@ -4,12 +4,21 @@
    scalar bound a coroutine as catalog_id)
 2. the background runner must ADOPT the row the API created (was: a second
    Run row got the real trials while the returned audit_id sat queued forever)
+
+GET /api/audit/{id} regression — found during second live fire (2026-08-24):
+
+3. mid-run polls must survive the ETA branch: SQLite round-trips started_at
+   as a naive datetime, and subtracting it from aware utcnow() raised
+   TypeError → 500 on every poll of a running run
 """
+from datetime import datetime, timedelta, timezone
+from uuid import uuid4
+
 from fastapi.testclient import TestClient
 from sqlalchemy import func, select
 
 import app.engine.runner as runner_mod
-from app.db.models import Run
+from app.db.models import Run, Trial
 from app.db.session import get_session
 from app.ingest.demo import load_demo_catalog
 from app.main import app
@@ -76,5 +85,43 @@ async def test_post_audit_unknown_catalog_source_rejected(db_env):
         with TestClient(app) as tc:
             r = tc.post("/api/audit", json={"catalog_source": "scraped"})
             assert r.status_code == 422
+    finally:
+        app.dependency_overrides.clear()
+
+
+async def test_get_audit_running_run_eta_survives_naive_started_at(db_env):
+    """Regression #3: a running run with ≥1 trial takes the ETA branch; the
+    naive started_at that SQLite hands back must not blow up against aware
+    utcnow (was: HTTP 500 on every mid-run poll)."""
+    async with db_env() as session:
+        cid = await load_demo_catalog(session)
+        run = Run(
+            id=str(uuid4()), catalog_id=cid, type="audit", status="running",
+            models={}, seeds={}, trials_total=640,
+            # deliberately naive — mirrors what SQLite returns on read-back
+            started_at=(datetime.now(timezone.utc) - timedelta(seconds=90)).replace(tzinfo=None),
+        )
+        session.add(run)
+        session.add(Trial(
+            run_id=run.id, model="ox-alpha", model_version="test-snap", tier="bulk",
+            persona_id="P1", condition="control", seed=1, presented_order=["sku_001"],
+            choice="sku_001", prompt_hash="h", null_allowed=False, parse_ok=True,
+        ))
+        await session.commit()
+        rid = run.id
+
+    async def _ov():
+        async with db_env() as s:
+            yield s
+
+    app.dependency_overrides[get_session] = _ov
+    try:
+        with TestClient(app) as tc:
+            r = tc.get(f"/api/audit/{rid}")
+            assert r.status_code == 200, r.text
+            body = r.json()
+            assert body["status"] == "running" and body["trials_done"] == 1
+            # elapsed 90s > 30s floor → ETA must actually be computed, not skipped
+            assert body["eta_s"] is not None and body["eta_s"] >= 0
     finally:
         app.dependency_overrides.clear()

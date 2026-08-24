@@ -132,7 +132,12 @@ async def get_audit(run_id: str, session: AsyncSession = Depends(get_session)) -
     # "168s left" while ~75 minutes of live calls remained (ba545a33).
     eta_s = None
     if run.status == "running" and done and run.started_at is not None:
-        elapsed = (datetime.now(timezone.utc) - run.started_at).total_seconds()
+        # SQLite round-trips naive datetimes; normalize before mixing with aware now(),
+        # else ETA math raises TypeError → 500 on every mid-run poll.
+        started = run.started_at
+        if started.tzinfo is None:
+            started = started.replace(tzinfo=timezone.utc)
+        elapsed = (datetime.now(timezone.utc) - started).total_seconds()
         if elapsed > 30:
             eta_s = max(0, int((run.trials_total or 640) * (elapsed / done) - elapsed))
     return {
