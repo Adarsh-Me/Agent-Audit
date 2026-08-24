@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     database_url: str = "sqlite+aiosqlite:///./agentaudit.db"
     cost_cap_usd: float = 30.0
     port: int = 8000
+    # Comma-separated browser origins allowed by CORS. Empty → local dev pair.
+    # "*" allows every origin (credentials disabled automatically — this API
+    # is cookie-free, so that is safe for public demo deployments).
+    cors_origins: str = ""
     # Agent money-policy (SAFETY.md): per-link spend ceiling + purchasable-SKU
     # allowlist override. Empty agent_allowed_skus → AGENT_DEFAULT_ALLOWED_SKUS.
     max_agent_spend_inr: int = AGENT_SPEND_CAP_INR

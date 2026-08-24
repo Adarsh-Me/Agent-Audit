@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.constants import RATE_LIMIT_POST_RPM
+from app.config import get_settings
 from app.db.session import init_db
 from app.errors import AppError, error_payload
 from app.routers import audit as audit_router
@@ -26,8 +27,30 @@ from app.routers import uploads as uploads_router
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     await init_db()
+    await _ensure_demo_catalog()
     await _reap_orphaned_runs()
     yield
+
+
+async def _ensure_demo_catalog() -> None:
+    """Fresh deployments boot with an empty database — seed the demo catalog so
+    the store is browsable and auditable without a manual make step (idempotent)."""
+    from sqlalchemy import func, select
+
+    from app.db.models import Catalog
+    from app.db.session import get_sessionmaker
+    from app.ingest.demo import load_demo_catalog
+
+    maker = get_sessionmaker()
+    async with maker() as session:
+        n = (await session.execute(
+            select(func.count()).select_from(Catalog)
+        )).scalar()
+        if n:
+            return
+        cid = await load_demo_catalog(session)
+        await session.commit()
+    print(f"[seed] empty database — loaded demo catalog {cid}")
 
 
 async def _reap_orphaned_runs() -> None:
@@ -67,13 +90,28 @@ async def _reap_orphaned_runs() -> None:
 
 app = FastAPI(title="AgentAudit", version="0.1.0", lifespan=lifespan)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+_origins_raw = get_settings().cors_origins.strip()
+if _origins_raw == "*":
+    # Public demo mode: any origin may read; credentials stay off (cookie-free API)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=False,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+else:
+    _origins = [o.strip() for o in _origins_raw.split(",") if o.strip()] or [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ]
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 # --- Rate limiting: 60 req/min/IP on POST endpoints → 429 E602 (SCHEMA §7.1) ---
 _post_hits: dict[str, deque[float]] = defaultdict(deque)
