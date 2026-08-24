@@ -18,6 +18,17 @@
 # Flagship slots carry the same primary/fallback pair for the P07 checkout demo.
 # All five price at $0.00 today; engine-id rows in client.py PRICING_USD_PER_MTOK
 # must mirror that.
+# RE-PINNED 2026-08-25: AiHubMix removed entirely — its unrecharged-account cap
+# (10 completion tries, then refusal-text-as-200) yielded 0/200 parse_ok on run
+# d593113f. Third bulk slot moves to OpenCode Zen's mimo-v2.5-free via
+# https://opencode.ai/zen/v1/chat/completions. Probed live 2026-08-25: key +
+# model + response_format json_object all accepted ($0 cost; with json_object
+# the reasoning model answers directly in ~6 tok, CoT fully suppressed).
+#   primary  stealth/ox-alpha            (stealth provider, $0.00/1M tok)
+#   fallback nvidia/nemotron-3.5-lightning:free ($0.00/1M tok)
+# Flagship slots carry the same primary/fallback pair for the P07 checkout demo.
+# All five price at $0.00 today; engine-id rows in client.py PRICING_USD_PER_MTOK
+# must mirror that.
 bulk:
   - id: ox-alpha
     openrouter_id: stealth/ox-alpha
@@ -29,14 +40,14 @@ bulk:
     version: "nemotron-3.5-lightning:free@2026-08-23"
     json_mode: true
     seed_supported: false    # :free endpoints ignore seed; CI absorbs variance
-  - id: glm
-    openrouter_id: coding-glm-5-turbo-free
-    version: "coding-glm-5-turbo-free@2026-08-24"
-    json_mode: true          # anthropic wire format has no response_format — JSON enforced by prompt only
-    seed_supported: false
-    base_url: https://aihubmix.com
-    endpoint: anthropic
-    api_key_env: aihubmix_api_key
+  - id: mimo
+    openrouter_id: mimo-v2.5-free
+    version: "mimo-v2.5-free@2026-08-25"
+    json_mode: true          # probed live 2026-08-25; json_object suppresses the CoT detour entirely
+    seed_supported: false    # reasoning model; generous max_tokens stays as headroom
+    base_url: https://opencode.ai/zen/v1
+    endpoint: openai
+    api_key_env: opencode_zen_api_key
 flagship:
   # version carries a -flagship suffix ON PURPOSE: flagship trials reuse (P07,
   # condition) slots already run by bulk, and the response cache keys on

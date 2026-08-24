@@ -33,7 +33,7 @@ OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 PRICING_USD_PER_MTOK: dict[str, tuple[float, float]] = {
     "ox-alpha": (0.0, 0.0),
     "nemotron-flash": (0.0, 0.0),
-    "glm": (0.0, 0.0),
+    "mimo": (0.0, 0.0),
     "ox-alpha-flagship": (0.0, 0.0),
     "nemotron-flagship": (0.0, 0.0),
 }
@@ -160,13 +160,16 @@ class OpenRouterClient:
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
             }, "openai"
+        # Tolerate bases that already carry /v1 (e.g. https://opencode.ai/zen/v1)
+        base = entry.base_url.rstrip("/")
+        v1 = "" if base.endswith("/v1") else "/v1"
         if entry.endpoint == "anthropic":
-            return (f"{entry.base_url}/v1/messages", {
+            return (f"{base}{v1}/messages", {
                 "x-api-key": api_key,
                 "anthropic-version": "2023-06-01",
                 "Content-Type": "application/json",
             }, "anthropic")
-        return (f"{entry.base_url}/v1/chat/completions", {
+        return (f"{base}{v1}/chat/completions", {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
         }, "openai")

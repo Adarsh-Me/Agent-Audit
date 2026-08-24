@@ -28,7 +28,7 @@ NULL_ALLOWED_CONDITIONS: Final = ("C1-s1", "C1-s2", "C1-s3", "C2-s1", "C2-s2", "
 FORCED_CONDITIONS: Final = ("C3-A-s1", "C3-A-s2", "C3-B-s1", "C3-B-s2")
 
 # --- Model ids (engine ids; provider strings live only in models.yaml) ---
-BULK_MODEL_IDS: Final = ("ox-alpha", "nemotron-flash", "glm")
+BULK_MODEL_IDS: Final = ("ox-alpha", "nemotron-flash", "mimo")
 FLAGSHIP_MODEL_IDS: Final = ("ox-alpha-flagship", "nemotron-flagship")
 
 # --- Statistics (TECHSPEC §8) ---
