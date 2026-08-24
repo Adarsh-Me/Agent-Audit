@@ -116,4 +116,12 @@ This is a deliverable, not a diary — it demonstrates engineering process to ju
 - **Observation:** score 70.5 → 67.1 and stability 0.75 → 0.58 moved purely because five more nemotron rows entered the pool — cross-model numbers are honestly sensitive to measured coverage per model; both runs publish their exact parse_ok n.
 - **Spent:** $0.
 
+## Day 16 — First live Razorpay capture chain closed (Aug 24)
+
+- **Shipped:** reviewer priority 3 proven end-to-end on real test-mode rails: audit `6b3fd1ea` (640/640 live) → agent-created link `plink_TTM8L1vq0TeYsr` (₹999, sku_007, 40-char hashed reference `aa:b516fb…` round-tripped by Razorpay) → human UPI payment 17:26 IST → **captured** — verified both sides: Razorpay API (`status=paid`, `method=upi`) and DB (`payments.status=captured`, row c8050fe6).
+- **Honest path note:** `webhook_events` stayed empty — the dashboard webhook still points at a rotated tunnel URL — so the capture was adopted by the webhook-timeout→poll fallback (bff2e36): the status endpoint asked Razorpay directly for pending links and flipped local state from provider truth. The documented SAFETY.md fallback doing its job, and proof that local testing needs no public URL.
+- **Broke → fixed:** every mid-run poll of GET /api/audit/{id} 500'd (ecf787b): SQLite returns started_at naive, ETA branch subtracted it from aware utcnow() → TypeError; completed runs never take the branch, which is why it survived three live-fire days. Regression test drives a running run through the branch; suite 127/127. Also fixed scripts/rzp_attempt_check.py — attempts ride on the link-fetch payload (GET /v1/payments rejects plink_* ids).
+- **Ops honesty:** two fresh full-matrix demo audits were fired concurrently during this window; both ground through nemotron's re-congested pool with hangs bounded by the 300 s trial cap (counted failures), exactly as designed.
+- **Spent:** $0 (test mode — the ₹999 is simulated money).
+
 
