@@ -1,8 +1,10 @@
 'use client'
 
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
+
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { useEffect, useMemo, useState } from 'react'
+import { CheckIcon, ClipboardCopyIcon } from 'lucide-react'
 
 import {
   Card,
@@ -44,16 +46,21 @@ import {
   type RevenueResponse
 } from '@/lib/api'
 import { inr, num1, num2, pct, usd } from '@/lib/format'
+import { AGENT_TOOLS, buildFixPrompt, copyText } from '@/lib/fixPrompt'
 import { personaLabel } from '@/lib/glossary'
 import { getRerunOf } from '@/lib/runs'
 
 const PARTIAL_BANNER = 'Partial run — the spend cap was reached. Numbers below are real but incomplete.'
+
 const STRIP_CAPTION =
   'How to read this: failure rate and demand concentration are measured from real agent trials; the traffic share is a scenario you set.'
+
+
 /** Friendly wording for the confidence-interval tooltips that repeat page-wide. */
 const CI_TIP = 'Likely range for the true value (95% confidence) — narrower means more certainty.'
 const SLIDER_VALUES = [0.01, 0.05, 0.1, 0.2]
 const DEFAULT_S_AGENT = 0.2
+
 /** Fair share = 1/N (N=40 demo SKUs) = 2.5% */
 const FAIR_SHARE = 1 / 40
 
@@ -66,7 +73,6 @@ export default function ResultsPage() {
   const [report, setReport] = useState<ReportResponse | null>(null)
   const [preview, setPreview] = useState<RevenueResponse | null>(null)
   const [recoverable, setRecoverable] = useState<RevenueResponse['recoverable_inr']>(null)
-  const [rerunId, setRerunId] = useState<string | null>(null)
   const [sAgent, setSAgent] = useState(DEFAULT_S_AGENT)
   const [error, setError] = useState<{ code: string; message: string } | null>(null)
 
@@ -81,6 +87,7 @@ export default function ResultsPage() {
         let st: AuditStatusResponse
         let lastDone = -1
         let stalePolls = 0
+
         for (;;) {
           st = await getAudit(runId)
           if (!alive) return
@@ -91,13 +98,17 @@ export default function ResultsPage() {
           if (stalePolls >= 45) break // ~90 s with zero new trials
           await new Promise(r => setTimeout(r, 2000))
         }
+
         if (!alive) return
         setStatus(st.status)
         setAbortReason(st.abort_reason ?? null)
+
         if (st.status === 'failed' && st.trials_done === 0) {
           return // nothing was measured — the banner says it all
         }
+
         const rep = await getReport(runId)
+
         if (!alive) return
         setReport(rep)
         setPreview(rep.revenue_preview)
@@ -109,18 +120,24 @@ export default function ResultsPage() {
     }
 
     void load()
+
     return () => {
       alive = false
     }
   }, [runId])
 
-  useEffect(() => {
-    setRerunId(getRerunOf(runId))
-  }, [runId])
+  // rerun linkage is external state (localStorage) — subscribe instead of
+  // sync-setState-in-effect, which also picks up cross-tab writes for free
+  const rerunId = useSyncExternalStore(
+    subscribeToStorage,
+    () => getRerunOf(runId),
+    () => null
+  )
 
   useEffect(() => {
     if ((status !== 'done' && status !== 'partial') || !rerunId) return
     let alive = true
+
     getRevenue(runId, { s_agent: DEFAULT_S_AGENT, delta_run_id: rerunId })
       .then(rev => {
         if (alive) setRecoverable(rev.recoverable_inr)
@@ -128,6 +145,7 @@ export default function ResultsPage() {
       .catch(() => {
         /* recoverable stays hidden — it only appears when a rerun delta exists */
       })
+
     return () => {
       alive = false
     }
@@ -135,7 +153,9 @@ export default function ResultsPage() {
 
   const invisibleBySku = useMemo(() => {
     const m = new Map<string, InvisibleSku>()
+
     for (const inv of report?.invisible_skus ?? []) m.set(inv.sku, inv)
+
     return m
   }, [report])
 
@@ -179,6 +199,7 @@ export default function ResultsPage() {
 
   // RaR scales linearly with the slider (multiplication only — never a measured quantity)
   const baseRar = preview?.revenue_at_risk_inr
+
   const rarScale =
     baseRar && preview && preview.inputs.s_agent.value > 0
       ? sAgent / preview.inputs.s_agent.value
@@ -371,6 +392,11 @@ export default function ResultsPage() {
             </Button>
             <Button render={<Link href={`/audit/${runId}/fixes`} />}>Fix what&rsquo;s broken →</Button>
           </div>
+
+          <Separator />
+
+          {/* one-click handoff: the whole fix brief goes to the merchant's own AI agent */}
+          <CopyFixPromptCard report={report} />
         </CardContent>
       </Card>
 
@@ -403,6 +429,7 @@ export default function ResultsPage() {
               {(report.legibility ?? []).map(row => {
                 const inv = invisibleBySku.get(row.sku)
                 const comp = row.composite ?? 0
+
                 return (
                   <TableRow key={row.sku} className={inv ? 'bg-rose-500/5' : undefined}>
                     <TableCell className='font-mono text-xs'>
@@ -683,12 +710,64 @@ export default function ResultsPage() {
   )
 }
 
+/** storage-event subscription for useSyncExternalStore (cross-tab safe). */
+function subscribeToStorage(onChange: () => void): () => void {
+  window.addEventListener('storage', onChange)
+
+  return () => window.removeEventListener('storage', onChange)
+}
+
+/** One-click handoff: full fix brief → merchant's own AI coding agent. */
+function CopyFixPromptCard({ report }: { report: ReportResponse }) {
+  const [copied, setCopied] = useState<'idle' | 'ok' | 'fail'>('idle')
+
+  async function onCopy() {
+    const ok = await copyText(buildFixPrompt(report))
+
+    setCopied(ok ? 'ok' : 'fail')
+    if (ok) setTimeout(() => setCopied('idle'), 2600)
+  }
+
+  return (
+    <div className='bg-muted/30 flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center'>
+      <div className='min-w-0 flex-1'>
+        <div className='flex items-center gap-2 text-sm font-medium'>
+          <ClipboardCopyIcon className='text-primary size-4 shrink-0' />
+          Fix it from here — hand this audit to your own AI agent
+        </div>
+        <p className='text-muted-foreground mt-1 text-xs leading-relaxed'>
+          One click copies a complete fix brief: every measured problem (invisible products,
+          weak listings, wording drift) plus step-by-step repair instructions and safety
+          constraints. Paste it into {AGENT_TOOLS} and it applies the fixes to your store —
+          then re-run this audit to verify the improvement.
+        </p>
+      </div>
+      <div className='shrink-0'>
+        <Button
+          onClick={onCopy}
+          title={`Copies the full fix brief for run ${report.run_id.slice(0, 8)} to your clipboard — nothing is uploaded anywhere.`}
+        >
+          {copied === 'ok' ? <CheckIcon /> : <ClipboardCopyIcon />}
+          {copied === 'ok' ? 'Copied — paste into your agent' : 'Copy Prompt'}
+        </Button>
+        {copied === 'fail' ? (
+          <p className='mt-1 max-w-48 text-right text-xs text-rose-600 dark:text-rose-400'>
+            Copy failed — browser blocked clipboard access.
+          </p>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
 function StabilityMatrix({ matrix }: { matrix: Record<string, number> }) {
   const entries = Object.entries(matrix)
+
   return (
     <div className='flex flex-col gap-2.5'>
       {entries.map(([pair, val]) => {
         const tone = val > 0.8 ? 'emerald' : val >= 0.5 ? 'primary' : 'rose'
+
         return (
           <div key={pair} className='grid grid-cols-[170px_1fr_44px] items-center gap-3 text-xs'>
             <span className='text-muted-foreground truncate font-mono'>{pair.replace('|', ' ↔ ')}</span>
@@ -705,7 +784,9 @@ function SlotChart({ perSlot }: { perSlot: number[] }) {
   if (perSlot.length === 0) {
     return <p className='text-muted-foreground text-sm'>No per-slot data reported.</p>
   }
+
   const max = Math.max(...perSlot, FAIR_SHARE)
+
   return (
     <div className='relative flex h-24 items-end gap-[2px] border-l border-b pl-1'>
       <div
