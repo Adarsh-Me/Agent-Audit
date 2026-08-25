@@ -75,6 +75,7 @@ export default function ResultsPage() {
   const [recoverable, setRecoverable] = useState<RevenueResponse['recoverable_inr']>(null)
   const [sAgent, setSAgent] = useState(DEFAULT_S_AGENT)
   const [error, setError] = useState<{ code: string; message: string } | null>(null)
+  const [progress, setProgress] = useState<{ done: number; total: number | null } | null>(null)
 
   useEffect(() => {
     let alive = true
@@ -92,6 +93,7 @@ export default function ResultsPage() {
           st = await getAudit(runId)
           if (!alive) return
           if (st.status === 'done' || st.status === 'partial' || st.status === 'failed') break
+          setProgress({ done: st.trials_done, total: st.trials_total })
           if (st.trials_done === lastDone) stalePolls += 1
           else stalePolls = 0
           lastDone = st.trials_done
@@ -188,6 +190,30 @@ export default function ResultsPage() {
   }
 
   if (!report) {
+    // While a run is still executing, say so instead of showing anonymous
+    // skeletons — the first suta.in live test left this page looking broken.
+    if (status === 'loading' || status === 'running' || status === 'queued') {
+      return (
+        <div className='rounded-lg border border-primary/30 bg-primary/5 px-4 py-4 text-sm'>
+          <p className='font-medium'>
+            Audit in progress
+            {progress ? (
+              <span className='text-muted-foreground font-normal'>
+                {' '}
+                — {progress.done} of {progress.total ?? '?'} shopping missions recorded
+              </span>
+            ) : null}
+            .
+          </p>
+          <p className='text-muted-foreground mt-1'>
+            Results appear here the moment the run reaches a terminal state.{' '}
+            <Link href={`/audit/${runId}`} className='underline underline-offset-4'>
+              Watch it live →
+            </Link>
+          </p>
+        </div>
+      )
+    }
     return (
       <div className='flex flex-col gap-4'>
         <PanelSkeleton lines={3} />
