@@ -118,9 +118,13 @@ class Trial(Base):
     __tablename__ = "trials"
     __table_args__ = (
         CheckConstraint("tier IN ('bulk','flagship')", name="ck_trials_tier"),  # SC-6
-        # C-2 choice semantics: a parsed trial with no choice is only legal when null was allowed
+        # C-2 choice semantics: a parsed trial with no choice is only legal when null was allowed.
+        # Boolean-literal form is portable across SQLite AND Postgres — the old
+        # `parse_ok = 0 … null_allowed = 1` DDL passed locally but made Postgres
+        # reject CREATE TABLE (operator boolean = integer), which silently stranded
+        # every production boot on the ephemeral-SQLite fallback (2026-08-26).
         CheckConstraint(
-            "parse_ok = 0 OR choice IS NOT NULL OR null_allowed = 1",
+            "NOT parse_ok OR choice IS NOT NULL OR null_allowed",
             name="ck_trials_choice_semantics",
         ),
         Index("idx_trials_run", "run_id"),
