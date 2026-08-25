@@ -134,3 +134,18 @@ This is a deliverable, not a diary — it demonstrates engineering process to ju
 - **Spent:** $0.
 
 
+
+## Day 18 — Production deploy on antideploy.com (Aug 25)
+
+Both apps public: API https://agentaudit-api.antideploy.com · Web https://agentaudit-web.antideploy.com
+
+Deploy journey — 9 attempts, 3 failure classes, all diagnosed from first principles (platform exposes no build logs over its API; only step status/spec/warnings/hazards):
+
+1. Buildpack builds died ~40s installing pinned deps. Local wheel audit (`pip download --only-binary --python-version 314`) proved asyncpg 0.30 has no cp314 distribution — the platform's 2026-default Python predates our pins' wheels. `runtime.txt` hint ignored. Fix: explicit `Dockerfile` pinning python:3.12-slim; docs confirm root Dockerfile overrides buildpacks (build went fail@42s → pass@197s).
+2. Boot crash #1: platform injects `DATABASE_URL=postgresql+psycopg2://…`; SQLAlchemy reached for psycopg2 (absent) inside lifespan. session.py now forces every postgres-family drivername onto asyncpg, translates libpq `sslmode`, runs create_all on Postgres (platform runs no migrations), and falls back to ephemeral SQLite loudly if the primary is unusable.
+3. Boot crash #2: demo-store/ + fixtures/ resolve via parents[3] outside a container whose archive root IS backend/. New app/paths.resolve_dir() checks monorepo/archive/cwd layouts; deploys bundle both dirs.
+4. Web buildpack failed on Next 16 app with TS/Tailwind as devDeps; custom multi-stage node:22-slim Dockerfile bakes NEXT_PUBLIC_* at build time (runtime-only env injection would inline nothing). npm ci then rejected the stale package-lock.json; regenerated it; npm10-in-container still stricter than local npm11 → `npm ci || npm install` fallback.
+
+Verified end-to-end through public URLs: /catalog serves the auto-seeded demo catalog (40 SKUs) from managed PostgreSQL; deployed web catalog page renders all rows client-side against the deployed API.
+
+Known quirks: platform edge 404s /healthz before it reaches the app (Cloudflare route rule; app-side health passed during release — frontend never calls it). Secrets live in antideploy's store: OPENROUTER/OPENCODE_ZEN/RAZORPAY_* + CORS_ORIGINS="*".
