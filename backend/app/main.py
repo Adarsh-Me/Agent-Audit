@@ -169,3 +169,50 @@ async def dbstatus() -> dict:
     from app.db.session import db_status
 
     return db_status()
+
+
+@app.get("/api/enginecheck")
+async def enginecheck() -> dict:
+    """One minimal live call per LLM provider FROM THIS CONTAINER.
+
+    Diagnoses nights like 2026-08-26 where a deployed run recorded 640/640
+    unusable answers while the same keys worked from a dev machine — separates
+    container egress failures from credential problems. Never echoes keys;
+    provider bodies are truncated."""
+    import httpx
+
+    from app.config import get_settings
+
+    s = get_settings()
+    checks = [
+        (
+            "ox-alpha",
+            "https://openrouter.ai/api/v1/chat/completions",
+            {"Authorization": f"Bearer {s.openrouter_api_key}"},
+            {
+                "model": "stealth/ox-alpha",
+                "max_tokens": 8,
+                "messages": [{"role": "user", "content": 'Return JSON {"ok":true}'}],
+            },
+        ),
+        (
+            "mimo",
+            "https://opencode.ai/zen/v1/chat/completions",
+            {"Authorization": f"Bearer {s.opencode_zen_api_key}"},
+            {
+                "model": "mimo-v2.5-free",
+                "max_tokens": 8,
+                "response_format": {"type": "json_object"},
+                "messages": [{"role": "user", "content": 'Return JSON {"ok":true}'}],
+            },
+        ),
+    ]
+    out: dict[str, dict] = {}
+    async with httpx.AsyncClient(timeout=30) as client:
+        for name, url, headers, payload in checks:
+            try:
+                r = await client.post(url, json=payload, headers=headers)
+                out[name] = {"http": r.status_code, "body": r.text[:160]}
+            except Exception as exc:  # noqa: BLE001 — diagnostics endpoint
+                out[name] = {"error": f"{type(exc).__name__}: {exc}"[:200]}
+    return out
