@@ -4,14 +4,14 @@ Idempotent: reuses the latest demo catalog row and replaces its products, so run
 reference the catalog keep a stable catalog_id across reseeds (TECHSPEC T1.5).
 """
 import json
-from pathlib import Path
 
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import Catalog, Merchant, Product
+from app.paths import resolve_dir
 
-DEMO_ROOT = Path(__file__).resolve().parents[3] / "demo-store"
+DEMO_ROOT = resolve_dir("demo-store")
 DEMO_MERCHANT_NAME = "AgentAudit Demo Merchant"
 DEMO_DEFAULT_GMV_INR = 800_000
 

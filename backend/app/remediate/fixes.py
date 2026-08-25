@@ -11,15 +11,15 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import Catalog, Product, Remediation, Run
+from app.paths import resolve_dir
 
-DEMO_ROOT = Path(__file__).resolve().parents[3] / "demo-store"
+DEMO_ROOT = resolve_dir("demo-store")
 TODO = "[seller to confirm]"
 
 

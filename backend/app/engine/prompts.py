@@ -10,7 +10,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-FIXTURES_DIR = Path(__file__).resolve().parents[3] / "fixtures"
+from app.paths import resolve_dir
+
+FIXTURES_DIR = resolve_dir("fixtures")
 RETRY_FEEDBACK = (
     "Your previous response was not valid JSON matching the schema. "
     "Respond again with JSON only."

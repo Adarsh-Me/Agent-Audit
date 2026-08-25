@@ -26,7 +26,9 @@ from app.routers import uploads as uploads_router
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    await init_db()
+    on_primary = await init_db()
+    if not on_primary:
+        print("[boot] serving on fallback SQLite — audit data resets on redeploy")
     await _ensure_demo_catalog()
     await _reap_orphaned_runs()
     yield

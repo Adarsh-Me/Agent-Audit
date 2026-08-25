@@ -31,13 +31,14 @@ from app.engine.client import CostLedger, LLMResponse, OpenRouterClient, Provide
 from app.engine.conditions import TrialSpec, enumerate_trials, shuffle_seed
 from app.engine.model_registry import ModelRegistry, load_model_registry
 from app.engine.parse import parse_response
+from app.paths import resolve_dir
 from pathlib import Path
 
 ProgressCb = Callable[[dict], Awaitable[None]]
 
 logger = logging.getLogger(__name__)
 
-DEMO_ROOT = Path(__file__).resolve().parents[3] / "demo-store"
+DEMO_ROOT = resolve_dir("demo-store")
 
 # Trial-batch flush cadence: persist at least this often so a mid-run crash can
 # never lose more than FLUSH_TRIALS executed trials, and the dashboard counter
