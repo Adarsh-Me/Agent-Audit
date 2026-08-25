@@ -46,6 +46,21 @@ class _DbState:
 
     engine: AsyncEngine | None = None
     maker: async_sessionmaker[AsyncSession] | None = None
+    on_primary: bool = True
+
+
+def db_status() -> dict[str, object]:
+    """Ops probe — which database did this container actually land on?
+    Deliberately coarse (no credentials, no hosts): enough to detect the
+    ephemeral-SQLite degraded mode from the outside."""
+    engine = get_engine()
+    return {
+        "on_primary": _DbState.on_primary,
+        "driver": engine.url.drivername,
+        "database": "managed-postgres"
+        if engine.url.drivername.startswith("postgresql")
+        else "local-sqlite",
+    }
 
 
 def _build_engine(url: str) -> AsyncEngine:
@@ -121,6 +136,7 @@ async def init_db() -> bool:
             async with engine.begin() as conn:
                 await conn.run_sync(Base.metadata.create_all)
             await _sqlite_column_migrations(engine)
+            _DbState.on_primary = True
             if attempt > 1:
                 print(f"[db] primary database recovered on attempt {attempt}")
             return True
@@ -140,6 +156,7 @@ async def init_db() -> bool:
         " — falling back to ephemeral SQLite"
     )
     _use(_SQLITE_FALLBACK_URL)
+    _DbState.on_primary = False
     async with get_engine().begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     await _sqlite_column_migrations(get_engine())

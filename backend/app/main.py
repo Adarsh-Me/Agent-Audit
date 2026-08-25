@@ -160,3 +160,12 @@ app.include_router(payments_router.router)
 @app.get("/healthz")
 async def healthz() -> dict:
     return {"status": "ok"}
+
+
+@app.get("/api/dbstatus")
+async def dbstatus() -> dict:
+    """Ops probe — reports which database this container landed on. The
+    platform edge 404s /healthz, so the same signal lives under /api."""
+    from app.db.session import db_status
+
+    return db_status()
