@@ -24,7 +24,8 @@ def _resp(status: int = 200, content: str = '{"product_id": "sku_007", "reason":
 
 @pytest.fixture
 def entry():
-    return load_model_registry().bulk[0]  # ox-alpha
+    # pin by id, not bulk[0]: slot order is scheduling priority and may reorder
+    return load_model_registry().by_id("ox-alpha")
 
 
 def _mock_client(handler):

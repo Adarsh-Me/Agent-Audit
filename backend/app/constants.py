@@ -28,7 +28,11 @@ NULL_ALLOWED_CONDITIONS: Final = ("C1-s1", "C1-s2", "C1-s3", "C2-s1", "C2-s2", "
 FORCED_CONDITIONS: Final = ("C3-A-s1", "C3-A-s2", "C3-B-s1", "C3-B-s2")
 
 # --- Model ids (engine ids; provider strings live only in models.yaml) ---
-BULK_MODEL_IDS: Final = ("ox-alpha", "nemotron-flash", "mimo")
+# TEMP ORDER 2026-08-26 (owner call): OpenCode Zen leads while it is the most
+# reliable $0 pool — tuple order == trial scheduling priority. Revert to
+# ("ox-alpha", "nemotron-flash", "mimo") when OpenRouter stabilises; keep
+# models.yaml bulk-list order identical (test_model_registry asserts it).
+BULK_MODEL_IDS: Final = ("mimo", "ox-alpha", "nemotron-flash")
 FLAGSHIP_MODEL_IDS: Final = ("ox-alpha-flagship", "nemotron-flagship")
 
 # --- Statistics (TECHSPEC §8) ---
