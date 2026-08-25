@@ -3,13 +3,14 @@ import time
 from collections import defaultdict, deque
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.constants import RATE_LIMIT_POST_RPM
 from app.config import get_settings
-from app.db.session import init_db
+from app.db.session import get_session, init_db
 from app.errors import AppError, error_payload
 from app.routers import audit as audit_router
 from app.routers import catalog as catalog_router
@@ -172,18 +173,48 @@ async def dbstatus() -> dict:
 
 
 @app.get("/api/enginecheck")
-async def enginecheck() -> dict:
-    """One minimal live call per LLM provider FROM THIS CONTAINER.
-
-    Diagnoses nights like 2026-08-26 where a deployed run recorded 640/640
-    unusable answers while the same keys worked from a dev machine — separates
-    container egress failures from credential problems. Never echoes keys;
-    provider bodies are truncated."""
+async def enginecheck(realistic: bool = False,
+                      session: AsyncSession = Depends(get_session)) -> dict:
+    """Live LLM calls FROM THIS CONTAINER — tiny probes by default, or pass
+    ?realistic=1 to replay an audit-sized prompt built by the engine's own
+    builder over the current default catalog (the 2026-08-26 deployed run
+    recorded 640/640 unusable answers while identical keys worked from dev;
+    this separates egress/credential failures from payload-size failures).
+    Never echoes keys; provider bodies are truncated."""
     import httpx
+    from sqlalchemy import select
 
-    from app.config import get_settings
+    from app.db.models import Product
+    from app.engine.prompts import build_prompt
+    from app.routers.catalog import _canonical, _resolve_catalog
 
     s = get_settings()
+    prompt_body = 'Return JSON {"ok":true}'
+    out: dict[str, object] = {}
+    if realistic:
+        catalog = await _resolve_catalog(session, None)
+        rows = (
+            (await session.execute(
+                select(Product).where(Product.catalog_id == catalog.id).order_by(Product.sku)
+            ))
+            .scalars()
+            .all()
+        )
+        persona = {
+            "profile_summary": "Pragmatic gift shopper buying one item",
+            "task": "Pick exactly one product that best matches your needs",
+            "budget_inr": 3000,
+        }
+        prompt_body = build_prompt(
+            persona, [_canonical(r) for r in rows], null_allowed=True
+        )
+        out["probe"] = {
+            "catalog": catalog.source,
+            "products": len(rows),
+            "prompt_chars": len(prompt_body),
+            "approx_tokens": len(prompt_body) // 4,
+        }
+
     checks = [
         (
             "ox-alpha",
@@ -191,8 +222,8 @@ async def enginecheck() -> dict:
             {"Authorization": f"Bearer {s.openrouter_api_key}"},
             {
                 "model": "stealth/ox-alpha",
-                "max_tokens": 8,
-                "messages": [{"role": "user", "content": 'Return JSON {"ok":true}'}],
+                "max_tokens": 32,
+                "messages": [{"role": "user", "content": prompt_body}],
             },
         ),
         (
@@ -201,18 +232,19 @@ async def enginecheck() -> dict:
             {"Authorization": f"Bearer {s.opencode_zen_api_key}"},
             {
                 "model": "mimo-v2.5-free",
-                "max_tokens": 8,
+                "max_tokens": 32,
                 "response_format": {"type": "json_object"},
-                "messages": [{"role": "user", "content": 'Return JSON {"ok":true}'}],
+                "messages": [{"role": "user", "content": prompt_body}],
             },
         ),
     ]
-    out: dict[str, dict] = {}
-    async with httpx.AsyncClient(timeout=30) as client:
+    results: dict[str, dict] = {}
+    async with httpx.AsyncClient(timeout=90) as client:
         for name, url, headers, payload in checks:
             try:
                 r = await client.post(url, json=payload, headers=headers)
-                out[name] = {"http": r.status_code, "body": r.text[:160]}
+                results[name] = {"http": r.status_code, "body": r.text[:200]}
             except Exception as exc:  # noqa: BLE001 — diagnostics endpoint
-                out[name] = {"error": f"{type(exc).__name__}: {exc}"[:200]}
+                results[name] = {"error": f"{type(exc).__name__}: {exc}"[:200]}
+    out.update(results)
     return out
