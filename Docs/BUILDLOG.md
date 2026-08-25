@@ -160,3 +160,4 @@ Known quirks: platform edge 404s /healthz before it reaches the app (Cloudflare 
 - **Ops note:** discovered mid-feature that the suta run lived entirely in local SQLite (the deployed DB has zero runs) — the "wait for the run before API redeploy" constraint evaporated.
 - **Spent:** $0.
 - **Addendum (Aug 26, 00:00 IST):** temporary re-pin per owner call — bulk slot order is now (`mimo`, `ox-alpha`, `nemotron-flash`) so OpenCode Zen schedules first. Matrix unchanged at 640 trials; flagship untouched; revert = restore the tuple and yaml list order.
+- **Addendum 2 (Aug 26, ~00:20 IST):** the mimo-reorder deploy came up on ephemeral SQLite — a release-window race where a single failed Postgres connect at boot permanently degraded that container (imported catalogs wiped; demo re-seeded fresh). `init_db` now retries the primary 4× over ~17s before falling back, logging each attempt. Suta was re-imported post-incident. Suite 133 green.

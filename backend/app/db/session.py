@@ -13,9 +13,15 @@ The platform also runs no migration step for us (its migrate probe finds none),
 so ``init_db`` runs ``create_all`` on *every* backend, not just SQLite. And
 because a public demo must never fail to boot over database plumbing, any
 primary-database failure falls back to an ephemeral local SQLite file — loudly,
-so the degraded mode is visible in container logs rather than silent.
+so the degraded mode is visible in container logs rather than silent. The
+primary gets bounded retries first (release-window races: the platform swaps
+containers while its managed Postgres is briefly unreachable — a single failed
+connect used to strand the new container on data-loss-by-design SQLite,
+wiping the imported catalogs on the 2026-08-26 deploy).
 """
+import asyncio
 from collections.abc import AsyncIterator
+from typing import Final
 
 from sqlalchemy import event
 from sqlalchemy.engine import make_url
@@ -29,6 +35,10 @@ from sqlalchemy.ext.asyncio import (
 from app.config import get_settings
 
 _SQLITE_FALLBACK_URL = "sqlite+aiosqlite:///./agentaudit.db"
+
+# Bounded patience before degrading to ephemeral SQLite (see module docstring).
+_PRIMARY_CONNECT_ATTEMPTS: Final = 4
+_PRIMARY_RETRY_BACKOFF_S: Final = (2.0, 5.0, 10.0)
 
 
 class _DbState:
@@ -104,22 +114,36 @@ async def init_db() -> bool:
     """
     from app.db.models import Base
 
-    try:
-        engine = get_engine()
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-        await _sqlite_column_migrations(engine)
-        return True
-    except Exception as exc:  # noqa: BLE001 — any primary failure → demo fallback
-        print(
-            f"[db] WARNING: primary database unusable "
-            f"({type(exc).__name__}: {exc}) — falling back to ephemeral SQLite"
-        )
-        _use(_SQLITE_FALLBACK_URL)
-        async with get_engine().begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-        await _sqlite_column_migrations(get_engine())
-        return False
+    last_exc: Exception | None = None
+    for attempt in range(1, _PRIMARY_CONNECT_ATTEMPTS + 1):
+        try:
+            engine = get_engine()
+            async with engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+            await _sqlite_column_migrations(engine)
+            if attempt > 1:
+                print(f"[db] primary database recovered on attempt {attempt}")
+            return True
+        except Exception as exc:  # noqa: BLE001 — any primary failure → retry/fallback
+            last_exc = exc
+            if attempt < _PRIMARY_CONNECT_ATTEMPTS:
+                delay = _PRIMARY_RETRY_BACKOFF_S[min(attempt - 1, len(_PRIMARY_RETRY_BACKOFF_S) - 1)]
+                print(
+                    f"[db] primary database not ready "
+                    f"(attempt {attempt}/{_PRIMARY_CONNECT_ATTEMPTS}: {type(exc).__name__})"
+                    f" — retrying in {delay:.0f}s"
+                )
+                await asyncio.sleep(delay)
+    print(
+        f"[db] WARNING: primary database unusable after "
+        f"{_PRIMARY_CONNECT_ATTEMPTS} attempts ({type(last_exc).__name__}: {last_exc})"
+        " — falling back to ephemeral SQLite"
+    )
+    _use(_SQLITE_FALLBACK_URL)
+    async with get_engine().begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    await _sqlite_column_migrations(get_engine())
+    return False
 
 
 async def _sqlite_column_migrations(engine: AsyncEngine) -> None:
