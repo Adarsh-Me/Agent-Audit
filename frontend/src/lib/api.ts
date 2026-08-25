@@ -290,6 +290,19 @@ export interface CatalogResponse {
   products: CatalogProduct[];
 }
 
+/** GET /catalogs — every known catalog (demo seed + imported stores), newest first. */
+export interface CatalogSummary {
+  catalog_id: string;
+  source: string;
+  merchant: string | null;
+  product_count: number;
+  created_at: string | null;
+}
+
+export function listCatalogs(): Promise<{ catalogs: CatalogSummary[] }> {
+  return request<{ catalogs: CatalogSummary[] }>("/catalogs");
+}
+
 /* --------------------------------------------------- payments (F8) */
 /** POST /api/payments/link — routers/payments.py is authoritative.
  *  Replays carry idempotent_replay: true and re-fetch short_url live (may be ""
@@ -502,8 +515,10 @@ export async function uploadCatalog(file: File): Promise<UploadResponse> {
   return (await res.json()) as UploadResponse;
 }
 
-export function getCatalog(): Promise<CatalogResponse> {
-  return request<CatalogResponse>("/catalog");
+export function getCatalog(catalogId?: string): Promise<CatalogResponse> {
+  return request<CatalogResponse>(
+    catalogId ? `/catalog?catalog_id=${encodeURIComponent(catalogId)}` : "/catalog",
+  );
 }
 
 export function createPaymentLink(

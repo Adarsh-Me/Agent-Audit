@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment, useEffect, useMemo, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
@@ -34,7 +34,9 @@ import {
   ApiError,
   getCatalog,
   getEvidence,
+  listCatalogs,
   type CatalogResponse,
+  type CatalogSummary,
   type EvidenceResponse
 } from '@/lib/api'
 import { inr } from '@/lib/format'
@@ -95,18 +97,52 @@ export default function CatalogPage() {
   const [tier, setTier] = useState<string>('all')
   const [openSku, setOpenSku] = useState<string | null>(null)
   const [evidence, setEvidence] = useState<EvidenceResponse | null>(null)
+  const [catalogs, setCatalogs] = useState<CatalogSummary[]>([])
+  const [catalogId, setCatalogId] = useState('')
+  const [switching, setSwitching] = useState(false)
+  const loadSeq = useRef(0)
+
+  const loadCatalog = useCallback(async (id?: string) => {
+    const seq = ++loadSeq.current
+    setSwitching(true)
+    setError(null)
+    try {
+      const res = await getCatalog(id || undefined)
+      if (loadSeq.current !== seq) return
+      setData(res)
+    } catch (err: unknown) {
+      if (loadSeq.current !== seq) return
+      if (err instanceof ApiError) setError({ code: err.code, message: err.message })
+      else setError({ code: 'E-UNK', message: 'Failed to load catalog.' })
+    } finally {
+      if (loadSeq.current === seq) setSwitching(false)
+    }
+  }, [])
+
+  function switchCatalog(id: string) {
+    if (id === catalogId) return
+    setCatalogId(id)
+    setOpenSku(null)
+    setQuery('')
+    setTier('all')
+    void loadCatalog(id)
+  }
 
   useEffect(() => {
     let alive = true
-    getCatalog()
+    void loadCatalog()
+
+    // Store switcher — degrades silently when the API predates /catalogs
+    listCatalogs()
       .then(res => {
-        if (!alive) return
-        setData(res)
+        if (!alive || res.catalogs.length < 2) return
+        setCatalogs(res.catalogs)
+        // highlight matches the server default (newest non-demo catalog)
+        const def = res.catalogs.find(c => c.source !== 'demo') ?? res.catalogs[0]
+        if (def) setCatalogId(def.catalog_id)
       })
-      .catch((err: unknown) => {
-        if (!alive) return
-        if (err instanceof ApiError) setError({ code: err.code, message: err.message })
-        else setError({ code: 'E-UNK', message: 'Failed to load catalog.' })
+      .catch(() => {
+        /* older backend without /catalogs — page still works on the default catalog */
       })
 
     // Agent Evidence binds to the most recent run — absent silently until one exists
@@ -124,7 +160,7 @@ export default function CatalogPage() {
     return () => {
       alive = false
     }
-  }, [])
+  }, [loadCatalog])
 
   const filtered = useMemo(() => {
     if (!data) return []
@@ -135,7 +171,7 @@ export default function CatalogPage() {
       return (
         p.title.toLowerCase().includes(q) ||
         p.id.toLowerCase().includes(q) ||
-        p.description.toLowerCase().includes(q)
+        (p.description ?? '').toLowerCase().includes(q)
       )
     })
   }, [data, query, tier])
@@ -150,17 +186,38 @@ export default function CatalogPage() {
 
   const tiers = Array.from(new Set(data.products.map(p => p.tier)))
   const withStructured = data.products.filter(p => p.structured_data && Object.keys(p.structured_data).length > 0).length
+  const prices = data.products.map(p => p.price_inr).filter((n): n is number => typeof n === 'number')
+  const selected = catalogs.find(c => c.catalog_id === data.catalog_id)
 
   return (
     <div className='flex flex-col gap-6'>
       <div>
         <h1 className='font-pixel text-2xl font-bold tracking-normal'>Catalog</h1>
         <p className='text-muted-foreground mt-1 text-sm'>
-          What the agents actually see — {data.count} listings in the audited catalog
-          {data.source === 'demo' ? ' (demo store)' : ''}. Click any row for its
-          legibility checklist and verbatim agent reasoning.
+          What the agents actually see — {data.count} listings
+          {selected?.merchant ? ` from ${selected.merchant}` : data.source === 'demo' ? ' (demo store)' : ''} in the
+          audited catalog. Click any row for its legibility checklist and verbatim agent reasoning.
         </p>
       </div>
+
+      {catalogs.length > 1 && catalogId && (
+        <div className='flex flex-wrap items-center gap-2'>
+          <span className='text-muted-foreground font-mono text-[11px] tracking-wide uppercase'>Store</span>
+          <Select value={catalogId} onValueChange={v => switchCatalog(v ?? '')}>
+            <SelectTrigger className='h-8 w-72'>
+              <SelectValue placeholder='Catalog' />
+            </SelectTrigger>
+            <SelectContent>
+              {catalogs.map(c => (
+                <SelectItem key={c.catalog_id} value={c.catalog_id}>
+                  {c.merchant ?? c.catalog_id.slice(0, 8)} · {c.source} · {c.product_count} products
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {switching && <span className='text-muted-foreground animate-pulse text-xs'>loading…</span>}
+        </div>
+      )}
 
       <div className='grid gap-3 sm:grid-cols-4'>
         <StatCard k='Products' v={data.count} />
@@ -169,10 +226,14 @@ export default function CatalogPage() {
         <StatCard
           k='Price range'
           v={
-            <span className='font-mono text-base'>
-              {inr(Math.min(...data.products.map(p => p.price_inr)))}–
-              {inr(Math.max(...data.products.map(p => p.price_inr)))}
-            </span>
+            prices.length > 0 ? (
+              <span className='font-mono text-base'>
+                {inr(Math.min(...prices))}–
+                {inr(Math.max(...prices))}
+              </span>
+            ) : (
+              '—'
+            )
           }
         />
       </div>
@@ -239,7 +300,9 @@ export default function CatalogPage() {
                       </TableCell>
                       <TableCell className='font-mono text-xs'>{p.id}</TableCell>
                       <TableCell className='max-w-44 truncate text-sm font-medium'>{p.title}</TableCell>
-                      <TableCell className='font-mono text-xs tabular-nums'>{inr(p.price_inr)}</TableCell>
+                      <TableCell className='font-mono text-xs tabular-nums'>
+                        {p.price_inr == null ? '—' : inr(p.price_inr)}
+                      </TableCell>
                       <TableCell>
                         <TierChip tier={p.tier} />
                       </TableCell>

@@ -149,3 +149,13 @@ Deploy journey — 9 attempts, 3 failure classes, all diagnosed from first princ
 Verified end-to-end through public URLs: /catalog serves the auto-seeded demo catalog (40 SKUs) from managed PostgreSQL; deployed web catalog page renders all rows client-side against the deployed API.
 
 Known quirks: platform edge 404s /healthz before it reaches the app (Cloudflare route rule; app-side health passed during release — frontend never calls it). Secrets live in antideploy's store: OPENROUTER/OPENCODE_ZEN/RAZORPAY_* + CORS_ORIGINS="*".
+
+
+## Day 19 — Catalog follows the store you ran (Aug 25)
+
+- **Shipped:** /catalog no longer hardcodes the demo seed. New `GET /catalogs` lists every catalog (merchant, source, product count) newest-first; `GET /catalog` and `GET /catalog/{sku}` accept `?catalog_id=`. The default view flips to the newest non-demo catalog — imported store / CSV upload / mirror — with the demo seed as fallback on fresh deployments.
+- **Why:** the first real test (suta.in import → 100 SKUs → audit run 4d94c4ce) exposed that the catalog page could never display an imported store: `_latest_catalog()` filtered `source == "demo"`.
+- **Frontend:** Store switcher on /catalog (appears once ≥2 catalogs exist; degrades silently against older APIs); subtitle names the merchant; null-safe price/description rendering for scraped feeds.
+- **Tests:** multi-catalog suite covers listing, pinning, cross-catalog scoping and the default flip — 132 passing, ruff clean, tsc clean.
+- **Ops note:** discovered mid-feature that the suta run lived entirely in local SQLite (the deployed DB has zero runs) — the "wait for the run before API redeploy" constraint evaporated.
+- **Spent:** $0.
