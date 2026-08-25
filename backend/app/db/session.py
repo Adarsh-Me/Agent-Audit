@@ -47,20 +47,38 @@ class _DbState:
     engine: AsyncEngine | None = None
     maker: async_sessionmaker[AsyncSession] | None = None
     on_primary: bool = True
+    # Diagnostics for the ops probe — no credentials, ever. endpoint is
+    # "host:port (drivername)"; error is type + truncated message.
+    last_primary_error: str = ""
+    primary_endpoint: str = ""
+
+
+def _primary_endpoint() -> str:
+    try:
+        u = make_url(get_settings().database_url)
+        return f"{u.host or '?'}:{u.port or '?'} ({u.drivername})"
+    except Exception as exc:  # noqa: BLE001 — even parsing the URL can fail
+        return f"unparseable DATABASE_URL ({type(exc).__name__})"
 
 
 def db_status() -> dict[str, object]:
     """Ops probe — which database did this container actually land on?
-    Deliberately coarse (no credentials, no hosts): enough to detect the
-    ephemeral-SQLite degraded mode from the outside."""
+    Deliberately coarse (no credentials, no passwords): enough to detect the
+    ephemeral-SQLite degraded mode AND diagnose an unreachable primary from
+    the outside."""
     engine = get_engine()
-    return {
+    out: dict[str, object] = {
         "on_primary": _DbState.on_primary,
         "driver": engine.url.drivername,
         "database": "managed-postgres"
         if engine.url.drivername.startswith("postgresql")
         else "local-sqlite",
     }
+    if _DbState.primary_endpoint:
+        out["primary_endpoint"] = _DbState.primary_endpoint
+    if _DbState.last_primary_error:
+        out["last_primary_error"] = _DbState.last_primary_error
+    return out
 
 
 def _build_engine(url: str) -> AsyncEngine:
@@ -129,6 +147,7 @@ async def init_db() -> bool:
     """
     from app.db.models import Base
 
+    _DbState.primary_endpoint = _primary_endpoint()
     last_exc: Exception | None = None
     for attempt in range(1, _PRIMARY_CONNECT_ATTEMPTS + 1):
         try:
@@ -137,11 +156,13 @@ async def init_db() -> bool:
                 await conn.run_sync(Base.metadata.create_all)
             await _sqlite_column_migrations(engine)
             _DbState.on_primary = True
+            _DbState.last_primary_error = ""
             if attempt > 1:
                 print(f"[db] primary database recovered on attempt {attempt}")
             return True
         except Exception as exc:  # noqa: BLE001 — any primary failure → retry/fallback
             last_exc = exc
+            _DbState.last_primary_error = f"{type(exc).__name__}: {str(exc)[:280]}"
             if attempt < _PRIMARY_CONNECT_ATTEMPTS:
                 delay = _PRIMARY_RETRY_BACKOFF_S[min(attempt - 1, len(_PRIMARY_RETRY_BACKOFF_S) - 1)]
                 print(

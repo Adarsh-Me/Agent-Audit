@@ -19,6 +19,9 @@ async def test_unreachable_primary_falls_back_after_retries(monkeypatch):
 
         assert ok is False  # degraded mode signalled to the lifespan caller
         assert dbmod.get_engine().url.drivername.startswith("sqlite")
+        # diagnostics captured for the /api/dbstatus ops probe
+        assert "127.0.0.1:9" in dbmod._DbState.primary_endpoint
+        assert dbmod._DbState.last_primary_error  # type + message recorded
     finally:
         if dbmod._DbState.engine is not saved[0] and dbmod._DbState.engine is not None:
             await dbmod._DbState.engine.dispose()
