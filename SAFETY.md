@@ -57,3 +57,9 @@ key material.
 - Idempotent replays of already-created links bypass whitelist/cap checks by
   design (a replay moves no new money); the test-mode guard still applies to
   every Razorpay touch, including replays.
+- The remote MCP endpoint (`/mcp`, streamable HTTP) makes `create_payment_link`
+  callable by any hosted AI client without authentication. The same three
+  server-side policies above bound every call (test-mode-only, whitelist,
+  per-link cap), and idempotency means repeat calls move no new money.
+  Bearer-token gating of the payment tool is the planned post-buildathon
+  hardening step.

@@ -40,7 +40,7 @@ Next.js :3000  ──►  FastAPI :8000  ──►  trial engine (OpenRouter: 3 
         │                    ├──►  PostgreSQL 16 (SQLite fallback for local dev)
         │                    ├──►  response cache keyed (prompt_hash, model_version)
         │                    └──►  Razorpay test-mode Payment Links + HMAC webhooks
-        └── SSE progress stream            MCP stdio server for external AI agents
+        └── SSE progress stream            MCP server: local stdio + remote HTTP (/mcp)
 ```
 
 ## Quickstart (local dev)
@@ -68,6 +68,39 @@ curl -X POST localhost:8000/api/audit -H 'Content-Type: application/json' \
 
 Then open `localhost:3000/audit/<id>` and watch trials land live.
 
+## Use from ChatGPT & Claude (remote MCP)
+
+The deployed API serves the audit tools over the MCP **streamable-HTTP** transport:
+
+```
+https://agentaudit-api.antideploy.com/mcp
+```
+
+Three tools: `audit_status(run_id)` · `get_report(run_id)` · `create_payment_link(run_id, sku)`
+(same handlers as the REST API — test-mode-only, spend-capped, idempotent per run+sku).
+
+| Client | Steps |
+|---|---|
+| **ChatGPT** (developer mode) | Settings → Connectors → Create → paste the URL above, authentication "No auth" → enable for chats / deep research |
+| **Claude.ai** web/desktop | Settings → Integrations → Add custom integration → paste the URL |
+| **Claude Code** | `claude mcp add --transport http agentaudit https://agentaudit-api.antideploy.com/mcp` |
+
+Local development keeps the stdio path — point it at your API:
+
+```bash
+AGENTAUDIT_API=http://localhost:8000 node mcp-server/server.mjs
+# register in Claude Desktop / any stdio MCP client
+```
+
+Handshake smoke test without a client:
+
+```bash
+curl -s https://agentaudit-api.antideploy.com/mcp -X POST \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"curl","version":"0"}}}'
+```
+
 ## Environment
 
 Copy `.env.example` → `.env`:
@@ -91,7 +124,8 @@ backend/app/routers/     REST API (uploads, audit, metrics, report, revenue, fix
                          payments, webhooks, SSE stream)
 backend/tests/validation/ V1–V6 planted-bias suite  → make validate
 demo-store/              controlled 40-product world (generator + static site)
-mcp-server/server.mjs    stdio MCP server: audit_status / get_report / create_payment_link
+mcp-server/server.mjs    local stdio MCP server: audit_status / get_report / create_payment_link
+backend/app/mcp_server.py remote MCP (streamable HTTP at /mcp) — same three tools, hosted clients
 Docs/                    PRD · TECHSPEC · SCHEMA · APPFLOW · SUMMARY · DESIGN · BUILDLOG
 SAFETY.md                money-action bounds: spend cap, SKU whitelist, test-mode-only
 ```
