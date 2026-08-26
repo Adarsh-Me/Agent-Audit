@@ -2,6 +2,10 @@
 
 > **Quantifiable buy-readiness audits for AI-agent-facing stores.** A 220-trial deterministic experiment that converts an e-commerce catalog into an AgentReady score (with confidence intervals), HHI concentration, position-bias, framing effects, and rupee-denominated Revenue-at-Risk — then closes the loop with a human-gated remediation workflow and a Razorpay test-mode checkout proof.
 
+<p align="center">
+  <img src="docs/assets/banner.png" alt="AgentAudit — buy-readiness audit engine for AI-agent-facing stores" width="100%">
+</p>
+
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](#)
