@@ -12,6 +12,7 @@ from app.constants import RATE_LIMIT_POST_RPM
 from app.config import get_settings
 from app.db.session import get_session, init_db
 from app.errors import AppError, error_payload
+from app.mcp_server import build_mcp_asgi_app, mcp_lifespan
 from app.routers import audit as audit_router
 from app.routers import catalog as catalog_router
 from app.routers import delta as delta_router
@@ -32,7 +33,10 @@ async def lifespan(_: FastAPI):
         print("[boot] serving on fallback SQLite — audit data resets on redeploy")
     await _ensure_demo_catalog()
     await _reap_orphaned_runs()
-    yield
+    # MCP streamable-HTTP transport: mounted sub-apps get no lifespan of their
+    # own, so its session manager runs inside ours (see app/mcp_server.py).
+    async with mcp_lifespan():
+        yield
 
 
 async def _ensure_demo_catalog() -> None:
@@ -156,6 +160,12 @@ app.include_router(remediations_router.router)
 app.include_router(delta_router.router)
 app.include_router(evidence_router.router)
 app.include_router(payments_router.router)
+
+# Remote MCP (ChatGPT connectors / claude.ai integrations / any MCP client):
+# same three tools as mcp-server/server.mjs, over streamable HTTP. Mounted as
+# raw ASGI; exact-path POST /mcp gets one standard 307 to /mcp/ (every hosted
+# client and HTTP stack follows 307 preserving method+body).
+app.mount("/mcp", build_mcp_asgi_app())
 
 
 @app.get("/healthz")

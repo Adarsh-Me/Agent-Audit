@@ -9,6 +9,9 @@ pydantic-settings==2.9.1
 httpx==0.28.1
 PyYAML==6.0.2
 python-multipart==0.0.20
+# Remote MCP (streamable HTTP at /mcp) — 1.x line: 2.x forces starlette>=1.0,
+# which fastapi==0.115.12 forbids (<0.47). Verified compatible pair locally.
+mcp==1.29.1
 
 # dev / test
 pytest==8.3.5
