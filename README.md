@@ -1,6 +1,6 @@
 <div align="center">
 
-# AgentAudit
+# AGENT-AUDIT
 
 ![AgentAudit — buy-readiness audit engine for AI-agent-facing stores](./banner.png)
 
