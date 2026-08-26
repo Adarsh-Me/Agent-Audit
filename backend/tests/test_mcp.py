@@ -159,16 +159,14 @@ async def test_tools_list_exposes_exactly_three_tools(unified_db):
         assert set(schemas["create_payment_link"].get("required", [])) == {"run_id", "sku"}
 
 
-async def test_mcp_exact_path_redirects_then_serves(unified_db):
-    """POST /mcp (no slash) → one standard 307 to /mcp/, which then serves.
-    Hosted clients follow 307 preserving method+body (fetch/httpx both do)."""
+async def test_post_mcp_without_trailing_slash_is_served_directly(unified_db):
+    """Hosted clients POST exactly /mcp. Starlette's Mount would 307 to
+    /mcp/, and the deploy edge 411s redirected request bodies — so the
+    exact path MUST answer 200 in one hop (see mcp_http_endpoint)."""
     with mcp_client(unified_db) as tc:
-        raw = tc.post(MCP_URL, json=_rpc("ping"),
-                      headers=RPC_HEADERS, follow_redirects=False)
-        assert raw.status_code == 307, (raw.status_code, raw.text[:200])
-        assert raw.headers["location"].endswith("/mcp/")
-        served = tc.post(MCP_URL, json=_rpc("ping"), headers=RPC_HEADERS)
-        assert served.status_code == 200, served.text[:200]
+        r = tc.post(MCP_URL, json=_rpc("ping"),
+                    headers=RPC_HEADERS, follow_redirects=False)
+        assert r.status_code == 200, (r.status_code, r.text[:200])
 
 
 async def test_audit_status_on_seeded_run(unified_db):

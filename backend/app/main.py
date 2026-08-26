@@ -12,7 +12,7 @@ from app.constants import RATE_LIMIT_POST_RPM
 from app.config import get_settings
 from app.db.session import get_session, init_db
 from app.errors import AppError, error_payload
-from app.mcp_server import build_mcp_asgi_app, mcp_lifespan
+from app.mcp_server import build_mcp_asgi_app, mcp_http_endpoint, mcp_lifespan
 from app.routers import audit as audit_router
 from app.routers import catalog as catalog_router
 from app.routers import delta as delta_router
@@ -162,9 +162,13 @@ app.include_router(evidence_router.router)
 app.include_router(payments_router.router)
 
 # Remote MCP (ChatGPT connectors / claude.ai integrations / any MCP client):
-# same three tools as mcp-server/server.mjs, over streamable HTTP. Mounted as
-# raw ASGI; exact-path POST /mcp gets one standard 307 to /mcp/ (every hosted
-# client and HTTP stack follows 307 preserving method+body).
+# same three tools as mcp-server/server.mjs, over streamable HTTP. The exact
+# Route serves POST /mcp directly (the edge 411s redirected request bodies);
+# the Mount covers /mcp/… paths.
+from starlette.routing import Route as _Route  # noqa: E402
+
+app.router.routes.append(_Route("/mcp", mcp_http_endpoint,
+                                methods=["GET", "POST", "DELETE"]))
 app.mount("/mcp", build_mcp_asgi_app())
 
 

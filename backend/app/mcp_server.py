@@ -89,6 +89,44 @@ def build_mcp_asgi_app():
     return _streamable_http_endpoint
 
 
+async def mcp_http_endpoint(request):
+    """Request-style endpoint serving EXACT ``/mcp`` with no redirect.
+
+    Starlette's Mount answers a trailing-slash-less POST with 307 -> /mcp/,
+    and the antideploy edge (Google frontend) rejects the followed second
+    POST with 411 Length Required - so hosted clients that POST exactly
+    /mcp would never reach us. This bridge runs the ASGI transport inline
+    and captures its response. Safe because json_response=True guarantees
+    exactly one non-streamed body message per reply.
+    """
+    from starlette.responses import Response
+
+    captured: dict[str, object] = {"status": 500, "headers": []}
+    chunks: list[bytes] = []
+
+    async def _capture_send(message) -> None:  # noqa: ANN001
+        if message["type"] == "http.response.start":
+            captured["status"] = message["status"]
+            captured["headers"] = list(message.get("headers", []))
+        elif message["type"] == "http.response.body":
+            chunks.append(message.get("body", b""))
+
+    await _streamable_http_endpoint(request.scope, request.receive, _capture_send)
+
+    header_pairs = []
+    for k, v in captured["headers"]:
+        ks = k.decode("latin-1") if isinstance(k, bytes) else str(k)
+        vs = v.decode("latin-1") if isinstance(v, bytes) else str(v)
+        if ks.lower() not in ("content-length", "transfer-encoding"):
+            header_pairs.append((ks, vs))
+    return Response(
+        content=b"".join(chunks),
+        status_code=int(captured["status"]),  # type: ignore[arg-type]
+        headers=dict(header_pairs),
+        media_type="application/json",
+    )
+
+
 async def _streamable_http_endpoint(scope, receive, send) -> None:  # noqa: ANN001
     """Raw ASGI endpoint — delegates to the active session manager."""
     manager = _Transport.manager
