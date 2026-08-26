@@ -266,6 +266,150 @@ curl -s https://agentaudit-api.antideploy.com/mcp -X POST \
   -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"curl","version":"0"}}}'
 ```
 
+## MCP Usage Examples & Setup
+
+The remote MCP endpoint exposes the same audit surface that the REST API does, but speaks JSON-RPC over streamable HTTP. Any client that can POST JSON can call the three tools — no SDK, no auth header, no installation.
+
+### Tool Surface
+
+| Tool | Input | Returns |
+|---|---|---|
+| `audit_status` | `{ "run_id": "<uuid>" }` | `{ run_id, status, trials_done, trials_total, cost_usd, eta_s, merchant, catalog_source, started_at, reason }` |
+| `get_report` | `{ "run_id": "<uuid>" }` | Full §3.5 payload: `score` (with CI), `hhi_norm`, `position`, `framing`, `coverage.f_task`, `invisible_skus`, `stability`, `revenue_preview`, `models_meta` |
+| `create_payment_link` | `{ "run_id": "<uuid>", "sku": "<sku>" }` | Razorpay test-mode link (idempotent per `run_id × sku`); or a structured `E503`/`E504`/`E505` policy envelope |
+
+All three tools reuse the REST router handlers directly, so an `AppError` raised inside the handler reaches the agent as the same `{ "error": { "code": "E...", "message": "..." } }` envelope that the JSON API returns.
+
+### Setup
+
+**Hosted (public) endpoint.** No setup — the production MCP server is reachable by URL alone. Use it from any client that can speak JSON-RPC over HTTPS.
+
+**Local development.** Two recipes, pick whichever fits your client:
+
+```bash
+# 1. Run the FastAPI backend (exposes the same /mcp transport on localhost)
+python -m uvicorn app.main:app --reload --port 8000 --app-dir backend
+
+# 2a. Use the in-process Python MCP server (stateless streamable HTTP on :8000/mcp)
+#     — already mounted by app.main, no further action.
+
+# 2b. Or run the stdio MCP server in a separate terminal (for local stdio clients)
+AGENTAUDIT_API=http://localhost:8000 node mcp-server/server.mjs
+```
+
+Register the chosen endpoint with your client:
+
+| Client | Setup |
+|---|---|
+| **ChatGPT** (developer mode) | Settings → Connectors → Create → URL `https://agentaudit-api.antideploy.com/mcp` → Auth "No auth" → enable for chats / deep research |
+| **Claude.ai** web / desktop | Settings → Integrations → Add custom integration → paste the URL |
+| **Claude Code** | `claude mcp add --transport http agentaudit https://agentaudit-api.antideploy.com/mcp` |
+| **Claude Desktop** (stdio, local) | Add to `claude_desktop_config.json`: `{ "mcpServers": { "agentaudit": { "command": "node", "args": ["mcp-server/server.mjs"], "env": { "AGENTAUDIT_API": "http://localhost:8000" } } } }` |
+| **Cursor** / **Windsurf** | Paste the URL into the MCP integration panel |
+| **Raw curl / Python / Node** | Just POST JSON-RPC to `/mcp` (see examples below) |
+
+**Required headers** for every request: `Content-Type: application/json` and `Accept: application/json, text/event-stream`. The transport is **stateless** (no `Mcp-Session-Id` handshake, no SSE) and returns **plain JSON** (one response per request).
+
+### Examples
+
+All snippets below use the public endpoint; substitute `http://localhost:8000/mcp` for local development. Save each JSON-RPC body to a file (e.g. `req.json`) and POST it — the longer the body, the less the bash quoting matters.
+
+**1. `initialize` — discover the server**
+
+```bash
+curl -s https://agentaudit-api.antideploy.com/mcp -X POST \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"curl","version":"0"}}}'
+# → {"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-03-26",
+#     "capabilities":{"tools":{"listChanged":false}, ...},
+#     "serverInfo":{"name":"agentaudit-mcp","version":"1.29.1"}}}
+```
+
+**2. `tools/list` — enumerate the surface**
+
+```bash
+cat > req.json <<'JSON'
+{"jsonrpc":"2.0","id":2,"method":"tools/list"}
+JSON
+curl -s https://agentaudit-api.antideploy.com/mcp -X POST \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  --data-binary @req.json | jq '.result.tools[].name'
+# → "audit_status"
+# → "create_payment_link"
+# → "get_report"
+```
+
+**3. `audit_status` — poll a running audit**
+
+```bash
+cat > req.json <<'JSON'
+{"jsonrpc":"2.0","id":3,"method":"tools/call",
+ "params":{"name":"audit_status",
+           "arguments":{"run_id":"835ef492-9aa6-4fc0-b1ac-dfdd9e1ae525"}}}
+JSON
+curl -s https://agentaudit-api.antideploy.com/mcp -X POST \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  --data-binary @req.json | jq '.result.content[0].text | fromjson'
+# → { "run_id":"835ef492-…", "status":"done", "trials_done":640,
+#     "trials_total":640, "cost_usd":0.0, "merchant":"suta.in", … }
+```
+
+**4. `get_report` — fetch the full AgentReady Score + CIs**
+
+```bash
+cat > req.json <<'JSON'
+{"jsonrpc":"2.0","id":4,"method":"tools/call",
+ "params":{"name":"get_report",
+           "arguments":{"run_id":"835ef492-9aa6-4fc0-b1ac-dfdd9e1ae525"}}}
+JSON
+curl -s https://agentaudit-api.antideploy.com/mcp -X POST \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  --data-binary @req.json \
+  | jq '.result.content[0].text | fromjson | {score, hhi_norm, coverage, stability, models_meta}'
+# → { "score": { "value": <n>, "ci_low": <n>, "ci_high": <n>, "components": {...} },
+#     "hhi_norm": { "value": …, "ci_low": …, "ci_high": … },
+#     "coverage": { "f_task": { "value": …, "ci_low": …, "ci_high": … }, … },
+#     "stability": { "mean": { "value": …, "ci_low": …, "ci_high": … }, "band": "high|medium|low" },
+#     "models_meta": [ { "id": "<model>", "parse_failure_rate": <n> }, … ] }
+```
+
+**5. `create_payment_link` — request a Razorpay test-mode checkout proof**
+
+```bash
+cat > req.json <<'JSON'
+{"jsonrpc":"2.0","id":5,"method":"tools/call",
+ "params":{"name":"create_payment_link",
+           "arguments":{"run_id":"<your-run-id>",
+                        "sku":"<purchasable-sku-from-whitelist>"}}}
+JSON
+curl -s https://agentaudit-api.antideploy.com/mcp -X POST \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  --data-binary @req.json | jq '.result.content[0].text | fromjson'
+# → 201 path: { "payment_id": "...", "razorpay_link_id": "plink_…",
+#               "short_url": "https://rzp.io/i/…", "amount_inr": <n>,
+#               "status": "created" }
+# → 403/404 path (policy refusal or unknown SKU):
+#      { "error": { "code": "E504", "message": "sku not on agent purchasable whitelist: …",
+#                   "details": { "policy": "sku_whitelist", "sku": "…" } } }
+```
+
+A repeat call with the same `run_id × sku` returns the same `razorpay_link_id` (idempotent replay moves no new money).
+
+### Troubleshooting
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `HTTP 411 Length Required` on follow | You followed a redirect that lost the body | POST directly to `/mcp` (no trailing slash) — the route serves the exact path in one hop |
+| Empty `result.content[0].text` | You hit the `Mount` (`/mcp/`) instead of the Route (`/mcp`) | Use `/mcp`, not `/mcp/` |
+| `error.code: -32602` | Tool name typo | Check the spelling against `tools/list` |
+| `error.code: E601` | `run_id` not found | Use `GET /api/audit` or `/api/runs` to discover valid IDs |
+| `error.code: E503` / `E504` / `E505` | Spend cap, SKU whitelist, or test-mode key guard fired | See [`SAFETY.md`](SAFETY.md) — adjust `MAX_AGENT_SPEND_INR` or `AGENT_ALLOWED_SKUS` env |
+
 ## API Reference
 
 A representative subset (full schema in [`Docs/SCHEMA.md`](Docs/SCHEMA.md)):
