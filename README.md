@@ -1,8 +1,12 @@
+<div align="center">
+
 # AgentAudit
 
-> **Quantifiable buy-readiness audits for AI-agent-facing stores.** A 220-trial deterministic experiment that converts an e-commerce catalog into an AgentReady score (with confidence intervals), HHI concentration, position-bias, framing effects, and rupee-denominated Revenue-at-Risk — then closes the loop with a human-gated remediation workflow and a Razorpay test-mode checkout proof.
-
 ![AgentAudit — buy-readiness audit engine for AI-agent-facing stores](./banner.png)
+
+**The unified buy-readiness audit engine for AI-agent-facing stores.**
+
+One line to your first score. Full audit control when you need it.
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -10,9 +14,15 @@
 [![MCP](https://img.shields.io/badge/MCP-streamable--HTTP-purple.svg)](#use-from-chatgpt--claude)
 [![Coverage](https://img.shields.io/badge/tests-142%2F142-brightgreen.svg)](#engineering-gates)
 
-**[Live API](https://agentaudit-api.antideploy.com)** · **[Live Web](https://agentaudit-web.antideploy.com)** · **[MCP Endpoint](https://agentaudit-api.antideploy.com/mcp)** · **[Docs](Docs/)** · **[Buildlog](Docs/BUILDLOG.md)**
+[Quickstart](#getting-started) · [Why AgentAudit](#abstract) · [Use from ChatGPT & Claude](#use-from-chatgpt--claude-remote-mcp) · [API Reference](#api-reference) · [Project status](#roadmap) · [Contributing](#contributing)
+
+</div>
 
 ---
+
+## Abstract
+
+AgentAudit operationalises the question *"Is my store actually buyable by an AI agent?"* as a reproducible measurement: a 220-trial per-catalog experiment (single-model or multi-model) that emits, with bootstrap-derived 95% confidence intervals, six core metrics and one composite **AgentReady Score** in the `[0, 100]` range. The system is API-first, exposes a streamable-HTTP **Model Context Protocol (MCP)** endpoint that any hosted AI client can call, and finishes the loop with a human-reviewed remediation workflow whose only money-moving action is a Razorpay **test-mode** payment link. It is engineered as a research instrument first — every headline number carries its CI, every provider failure is counted and published, every boot path is observable from outside.
 
 ## Table of Contents
 
