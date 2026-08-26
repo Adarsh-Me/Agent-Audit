@@ -108,5 +108,5 @@ async def test_rerun_rebills_after_remediation(db_env):
         total = (await session.execute(
             select(func.count()).select_from(Trial).where(Trial.run_id == rerun_id)
         )).scalar()
-    assert total == 640
-    assert n_new > 600, "remediated rerun must be mostly fresh trials (SC-3)"
+    assert total == 220
+    assert n_new > 200, "remediated rerun must be mostly fresh trials (SC-3)"

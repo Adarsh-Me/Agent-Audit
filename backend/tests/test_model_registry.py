@@ -14,13 +14,14 @@ def test_registry_loads_with_exact_counts():
 def test_registry_snapshot_shape():
     snap = load_model_registry().snapshot()
     assert set(snap) == {"bulk", "flagship"}
-    assert len(snap["bulk"]) == 3 and len(snap["flagship"]) == 2
+    assert len(snap["bulk"]) == 1 and len(snap["flagship"]) == 1
     for entry in snap["bulk"] + snap["flagship"]:
         assert {"id", "openrouter_id", "version"} <= set(entry)
         assert entry["version"] and not entry["version"].startswith("<")
 
 
 def test_duplicate_ids_rejected(tmp_path):
+    # counts must be satisfiable first (1 bulk / 1 flagship) — duplicate across tiers
     bad = tmp_path / "models.yaml"
     bad.write_text(
         """
@@ -28,19 +29,10 @@ bulk:
   - id: a
     openrouter_id: x/a
     version: "1"
+flagship:
   - id: a
     openrouter_id: x/a2
     version: "2"
-  - id: b
-    openrouter_id: x/b
-    version: "3"
-flagship:
-  - id: c
-    openrouter_id: x/c
-    version: "4"
-  - id: d
-    openrouter_id: x/d
-    version: "5"
 """,
         encoding="utf-8",
     )

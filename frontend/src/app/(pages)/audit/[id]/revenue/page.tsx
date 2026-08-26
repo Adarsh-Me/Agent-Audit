@@ -199,7 +199,7 @@ export default function RevenuePage() {
                 <div className='text-muted-foreground mt-3 text-xs'>
                   <SourceChip kind='scenario' /> adjusted by the walk-away rate{' '}
                   <Ci v={data.inputs.f_task.value} lo={data.inputs.f_task.ci_low} hi={data.inputs.f_task.ci_high} fmt={n => n.toFixed(4)} />{' '}
-                  <SourceChip kind='measured' label='[measured · 640 shopping missions]' />
+                  <SourceChip kind='measured' label='[measured · live shopping missions]' />
                 </div>
               </CardContent>
             </Card>
@@ -318,7 +318,7 @@ export default function RevenuePage() {
                       />
                     </TableCell>
                     <TableCell>
-                      <SourceChip kind='measured' label='[measured · 640 shopping missions]' />
+                      <SourceChip kind='measured' label='[measured · live shopping missions]' />
                     </TableCell>
                     <TableCell className='text-muted-foreground max-w-72 text-xs'>
                       {data.inputs.f_task.note}

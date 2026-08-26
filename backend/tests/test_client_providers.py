@@ -2,8 +2,9 @@
 
 No network: MockTransport asserts URL (incl. trailing-/v1 dedup), headers,
 payload shape, and response parsing for each wire format. Found while wiring
-mimo-v2.5-free on OpenCode Zen (2026-08-25) and coding-glm-5-turbo-free on
-AiHubMix (2026-08-24, since removed).
+mimo-v2.5-free on OpenCode Zen (2026-08-25), deepseek-v4-flash on tokenbom
+(2026-08-26, same-day swap), and x-preview-f-free back on OpenCode Zen
+(2026-08-26, current pin).
 """
 import json
 
@@ -15,8 +16,8 @@ from app.engine.model_registry import ModelEntry
 
 
 def _entry(**kw) -> ModelEntry:
-    return ModelEntry(id="mimo", openrouter_id="mimo-v2.5-free",
-                      version="mimo-v2.5-free@2026-08-25", **kw)
+    return ModelEntry(id="xpreview", openrouter_id="x-preview-f-free",
+                      version="x-preview-f-free@2026-08-26", **kw)
 
 
 async def test_openai_style_base_with_trailing_v1_is_not_doubled():

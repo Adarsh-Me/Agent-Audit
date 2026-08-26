@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     template: '%s · AgentAudit'
   },
   description:
-    'Can AI shopping agents actually see, choose, and buy from your catalog? AgentAudit runs 640 randomized, controlled shopping trials with real LLM agents and measures choice behavior with confidence intervals.',
+    'Can AI shopping agents actually see, choose, and buy from your catalog? AgentAudit runs 220 randomized, controlled shopping trials with real LLM agents and measures choice behavior with confidence intervals.',
   metadataBase: new URL(`${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}`)
 }
 

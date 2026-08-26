@@ -74,8 +74,8 @@ async def test_hanging_call_hits_wall_cap_and_run_completes(db_env, registry,
             .where(Trial.run_id == run_id, Trial.parse_ok.is_(False),
                    Trial.reason.like("%wall cap%")))).scalar()
     assert run.status == "done"
-    assert n == 640
-    assert fails >= 6  # 640 trials / hang-every-100 → ≥6 abandoned by the cap
+    assert n == 220
+    assert fails >= 2  # 220 trials / hang-every-100 calls → ≥2 abandoned by the cap
 
 
 async def test_engine_error_counted_not_fatal(db_env, registry):
@@ -92,5 +92,5 @@ async def test_engine_error_counted_not_fatal(db_env, registry):
             select(func.count()).select_from(Trial)
             .where(Trial.run_id == run_id, Trial.parse_ok.is_(True)))).scalar()
     assert run.status == "done"      # NOT failed/partial — loop survived
-    assert n == 640                  # every trial accounted for
+    assert n == 220                  # every trial accounted for
     assert ok == 0                   # all honestly counted as failures

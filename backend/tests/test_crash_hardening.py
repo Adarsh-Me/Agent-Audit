@@ -12,7 +12,8 @@ import pytest
 from sqlalchemy import func, select, text
 from sqlalchemy.exc import OperationalError
 
-from app.constants import PARSE_RETRIES
+from app.constants import (FLAGSHIP_MODEL_COUNT, FORCED_TRIALS, NULL_ALLOWED_TRIALS,
+                           PARSE_RETRIES, PERSONA_COUNT)
 from app.db.models import Run, Trial
 from app.engine.cache import cache_put
 from app.engine.client import CostLedger, LLMResponse
@@ -124,10 +125,11 @@ async def test_declining_model_survives_full_run_with_honest_failures(
     assert run.status == "done"
     assert forced_bad == forced_total > 0      # all forced declines counted failed
     assert allowed_null == allowed_total       # null-allowed declines stay valid
-    p = forced_total // 12                     # 4 forced conds × 3 bulk models
-    expected_calls = 18 * p + 12 * p * PARSE_RETRIES + 2 * p
-    assert client.calls == expected_calls      # forced retried ×PARSE_RETRIES,
-                                               # null-allowed + flagships once
+    flagship_trials = FLAGSHIP_MODEL_COUNT * PERSONA_COUNT
+    expected_calls = (FORCED_TRIALS * PARSE_RETRIES          # forced retried ×PARSE_RETRIES
+                      + (NULL_ALLOWED_TRIALS - flagship_trials)  # null-allowed bulk once
+                      + flagship_trials)                     # null-allowed + flagships once
+    assert client.calls == expected_calls
 
 
 async def test_progress_flushes_at_least_every_20_trials(db_env, registry):
@@ -142,15 +144,15 @@ async def test_progress_flushes_at_least_every_20_trials(db_env, registry):
         .run_audit(catalog_id, progress=cb)
 
     ticks = [p for p in progress if p.get("type") == "progress"]
-    assert len(ticks) >= 640 // 20             # ≥ one tick per 20 trials
-    assert ticks[-1]["done"] == 640
+    assert len(ticks) >= 220 // 20             # ≥ one tick per 20 trials
+    assert ticks[-1]["done"] == 220
 
 
 # --------------------------------------------------- cache-replay guard
 
 async def _execute_via_cache(db_env, registry, *, null_allowed: bool):
     """Seed a poisoned cache row (decline), then execute ONE trial against it."""
-    spec = TrialSpec(model="ox-alpha", model_version=registry.by_id("ox-alpha").version,
+    spec = TrialSpec(model="xpreview", model_version=registry.by_id("xpreview").version,
                      tier="bulk", persona_id="P01",
                      condition="C3-B-s1" if not null_allowed else "C1-s1",
                      seed=7, null_allowed=null_allowed)
@@ -224,7 +226,7 @@ async def test_transient_commit_failure_retried_run_completes(db_env, registry,
         n = (await s.execute(select(func.count()).select_from(Trial)
                              .where(Trial.run_id == run_id))).scalar()
     assert run.status == "done"
-    assert n == 640                              # no trials lost to the retry
+    assert n == 220                              # no trials lost to the retry
 
 
 async def test_persistent_commit_failure_keeps_real_error_identity(

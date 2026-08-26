@@ -114,13 +114,13 @@ export default function LandingPage() {
       <section className='rounded-xl border bg-gradient-to-b from-primary/10 via-primary/5 to-transparent px-8 py-12'>
         <Badge variant='outline' className='border-primary/30 bg-primary/10 mb-6 h-6 px-2.5 text-xs text-[oklch(0.78_0.12_258)]'>
           <FlaskConicalIcon data-icon='inline-start' />
-          640 controlled shopping missions · real AI agents
+          220 controlled shopping missions · real AI agents
         </Badge>
         <h1 className='font-pixel max-w-3xl text-2xl leading-snug text-balance sm:text-3xl'>
           Can AI shopping agents actually buy from you?
         </h1>
         <p className='text-muted-foreground mt-5 max-w-2xl text-base leading-relaxed text-pretty'>
-          AgentAudit runs 640 controlled agent trials across your catalog and measures whether AI
+          AgentAudit runs 220 controlled agent trials across your catalog and measures whether AI
           shoppers can see your products, choose them fairly, and carry a purchase through to
           payment.
         </p>
@@ -363,7 +363,7 @@ function StoreCard({
         </div>
         <CardDescription className='leading-relaxed'>
           Paste your store&rsquo;s URL (e.g. <code className='font-mono text-xs'>mystore.myshopify.com</code>).
-          We import up to 100 listings as a snapshot, then run the same 640-trial audit on your real
+          We import up to 100 listings as a snapshot, then run the same 220-trial audit on your real
           catalog.
         </CardDescription>
       </CardHeader>

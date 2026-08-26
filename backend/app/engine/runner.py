@@ -23,7 +23,7 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.config import get_settings
-from app.constants import COST_CAP_USD, PARSE_RETRIES, TRIAL_WALL_CAP_S
+from app.constants import COST_CAP_USD, PARSE_RETRIES, TRIAL_WALL_CAP_S, TRIALS_PER_FULL_RUN
 from app.db.models import Product, Run, Trial
 from app.engine import prompts as P
 from app.engine.cache import cache_get, cache_put
@@ -193,7 +193,7 @@ class Runner:
                     parent_run_id=parent_run_id,
                     type=type_,
                     status="queued",
-                    trials_total=640,
+                    trials_total=TRIALS_PER_FULL_RUN,
                 )
                 session.add(run)
             run.models = self.deps.registry.snapshot()
@@ -202,7 +202,7 @@ class Runner:
                 "trial": "int(sha256('trial|{persona}|{condition}')[:8],16) % 2^31",
                 "shuffle": "int(sha256('shuffle|{condition}')[:8],16) % 2^31",
             }
-            run.trials_total = 640
+            run.trials_total = TRIALS_PER_FULL_RUN
             await session.commit()
             run_id = run.id
 
@@ -282,7 +282,7 @@ class Runner:
                                                         ledger, emit, ordinal_map)
                 except Exception as exc:  # noqa: BLE001
                     # Engine-level escape hatch: NO single trial may kill a
-                    # 640-trial run (2026-08-22 freeze post-mortem). Counted as
+                    # full-matrix run (2026-08-22 freeze post-mortem). Counted as
                     # a provider-style failure, surfaced via parse_rate.
                     await emit({"type": "trial", "model": spec.model,
                                 "persona_id": spec.persona_id,
@@ -378,7 +378,7 @@ class Runner:
             except ProviderError as exc:
                 # provider-side failure (429 storm / breaker / blank content after
                 # retries): count this trial as a parse failure and keep the run
-                # alive — a single endpoint hiccup must not abort 640 trials.
+                # alive — a single endpoint hiccup must not abort the matrix.
                 # Surfaced honestly via per-model parse_rate.
                 await emit({"type": "trial", "model": spec.model,
                             "persona_id": spec.persona_id, "condition": spec.condition,

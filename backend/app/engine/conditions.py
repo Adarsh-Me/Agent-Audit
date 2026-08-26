@@ -1,4 +1,7 @@
-"""Condition matrix — enumerates exactly 640 trials (TECHSPEC §7.2, SCHEMA §2.2).
+"""Condition matrix — full-matrix enumeration per TECHSPEC §7.2 / SCHEMA §2.2.
+
+Counts are constants-driven (SINGLE-MODEL MODE 2026-08-26): BULK_MODEL_COUNT ×
+200 + FLAGSHIP_MODEL_COUNT × 20 trials.
 
 Seed derivations (SCHEMA §3.3.3, normative):
   trial seed:   int(sha256("trial|{persona}|{condition}")[:8],16) % 2**31   — per persona × condition
@@ -11,11 +14,15 @@ import hashlib
 from dataclasses import dataclass
 
 from app.constants import (
+    BULK_MODEL_COUNT,
     CONDITION_CODES,
     FLAGSHIP_MODEL_COUNT,
     FORCED_CONDITIONS,
+    FORCED_TRIALS,
     NULL_ALLOWED_CONDITIONS,
+    NULL_ALLOWED_TRIALS,
     PERSONA_COUNT,
+    TRIALS_PER_FULL_RUN,
 )
 from app.engine.model_registry import ModelRegistry
 
@@ -45,7 +52,7 @@ def shuffle_seed(condition_code: str) -> int:
 
 
 def enumerate_trials(registry: ModelRegistry) -> list[TrialSpec]:
-    """Full matrix: 3 bulk × 200 + 2 flagship × 20 = 640."""
+    """Full matrix: BULK_MODEL_COUNT × 200 + FLAGSHIP_MODEL_COUNT × 20."""
     trials: list[TrialSpec] = []
     for model in registry.bulk:
         for condition in BULK_CONDITIONS:
@@ -85,10 +92,12 @@ def matrix_counts(trials: list[TrialSpec]) -> dict[str, int]:
 
 def assert_matrix_shape(trials: list[TrialSpec]) -> None:
     counts = matrix_counts(trials)
-    assert counts == {"total": 640, "null_allowed": 400, "forced": 240}, counts
+    assert counts == {"total": TRIALS_PER_FULL_RUN,
+                      "null_allowed": NULL_ALLOWED_TRIALS,
+                      "forced": FORCED_TRIALS}, counts
     bulk_models = {t.model for t in trials if t.tier == "bulk"}
     flagship_models = {t.model for t in trials if t.tier == "flagship"}
-    assert len(bulk_models) == 3 and len(flagship_models) == FLAGSHIP_MODEL_COUNT
+    assert len(bulk_models) == BULK_MODEL_COUNT and len(flagship_models) == FLAGSHIP_MODEL_COUNT
     # every (model, persona, condition) triple unique; seeds deterministic per pair
     seen: set[tuple] = set()
     for t in trials:
@@ -96,6 +105,7 @@ def assert_matrix_shape(trials: list[TrialSpec]) -> None:
         assert key not in seen, f"duplicate trial {key}"
         seen.add(key)
         assert t.seed == trial_seed(t.persona_id, t.condition)
+    assert len(trials) == (BULK_MODEL_COUNT * 200 + FLAGSHIP_MODEL_COUNT * PERSONA_COUNT)
 
 
 def is_forced(condition: str) -> bool:

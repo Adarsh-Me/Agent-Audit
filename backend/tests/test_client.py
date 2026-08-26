@@ -25,7 +25,7 @@ def _resp(status: int = 200, content: str = '{"product_id": "sku_007", "reason":
 @pytest.fixture
 def entry():
     # pin by id, not bulk[0]: slot order is scheduling priority and may reorder
-    return load_model_registry().by_id("ox-alpha")
+    return load_model_registry().by_id("xpreview")
 
 
 def _mock_client(handler):
@@ -48,7 +48,7 @@ async def test_success_and_cost_math(entry):
         assert out.choice if hasattr(out, "choice") else True
         assert out.content.startswith('{"product_id"')
         assert out.latency_ms >= 0
-        assert abs(out.cost_usd - estimate_cost_usd("ox-alpha", 500, 50)) < 1e-9
+        assert abs(out.cost_usd - estimate_cost_usd("xpreview", 500, 50)) < 1e-9
         # json mode requested; seed omitted because pinned models don't support it
         assert "seed" not in calls[0]
         assert calls[0]["response_format"] == {"type": "json_object"}
@@ -85,7 +85,7 @@ async def test_circuit_breaker_opens_after_threshold(entry):
             with pytest.raises(ProviderError):
                 await client.chat(entry, "p", seed=3)
         # breaker keys are namespaced by provider origin (2026-08-24 multi-provider)
-        bkey = f"openrouter::{entry.openrouter_id}"
+        bkey = f"{entry.base_url or 'openrouter'}::{entry.openrouter_id}"
         assert client.breakers[bkey].consecutive_failures == 10
         opened = client.breakers[bkey].open
         assert opened
@@ -104,8 +104,8 @@ def test_cost_ledger_cap():
 
 
 def test_estimate_cost_known_models():
-    # all pinned models are $0.00 on OpenRouter as of the 2026-08-22 re-pin
-    assert estimate_cost_usd("ox-alpha", 1_000_000, 0) == pytest.approx(0.0)
-    assert estimate_cost_usd("nemotron-flash", 0, 1_000_000) == pytest.approx(0.0)
+    # current pin prices $0.00 in the ledger (OpenCode Zen free-tier endpoint)
+    assert estimate_cost_usd("xpreview", 1_000_000, 0) == pytest.approx(0.0)
+    assert estimate_cost_usd("xpreview-flagship", 0, 1_000_000) == pytest.approx(0.0)
     # unknown ids fall back to a conservative $1/M so surprises surface in the ledger
     assert estimate_cost_usd("not-in-table", 0, 1_000_000) == pytest.approx(1.0)

@@ -6,12 +6,15 @@ Import from here (or scoring/config.yaml, which tests keep in sync with this fil
 from typing import Final
 
 # --- Run matrix (TECHSPEC §22 / §7.2) ---
-TRIALS_PER_FULL_RUN: Final = 640  # 600 bulk + 40 flagship
-BULK_MODEL_COUNT: Final = 3
-FLAGSHIP_MODEL_COUNT: Final = 2
+# SINGLE-MODEL MODE 2026-08-26 (owner call): audit runs use ONLY ONE provider+
+# model — see models.yaml for the current pin. Matrix: 1 bulk × 200 +
+# 1 flagship × 20 = 220 trials. Revert path documented in git history.
+TRIALS_PER_FULL_RUN: Final = 220  # 200 bulk + 20 flagship
+BULK_MODEL_COUNT: Final = 1
+FLAGSHIP_MODEL_COUNT: Final = 1
 TRIALS_PER_BULK_MODEL: Final = 200  # C1 60 + C2 60 + C3 80
-NULL_ALLOWED_TRIALS: Final = 400  # C1 180 + C2 180 + flagship 40
-FORCED_TRIALS: Final = 240  # C3
+NULL_ALLOWED_TRIALS: Final = 140  # C1 60 + C2 60 + flagship 20
+FORCED_TRIALS: Final = 80  # C3
 CATALOG_SIZE_DEMO: Final = 40
 PERSONA_COUNT: Final = 20
 NULL_PLAUSIBLE_PERSONAS: Final = ("P04", "P09", "P10", "P20")
@@ -28,12 +31,11 @@ NULL_ALLOWED_CONDITIONS: Final = ("C1-s1", "C1-s2", "C1-s3", "C2-s1", "C2-s2", "
 FORCED_CONDITIONS: Final = ("C3-A-s1", "C3-A-s2", "C3-B-s1", "C3-B-s2")
 
 # --- Model ids (engine ids; provider strings live only in models.yaml) ---
-# TEMP ORDER 2026-08-26 (owner call): OpenCode Zen leads while it is the most
-# reliable $0 pool — tuple order == trial scheduling priority. Revert to
-# ("ox-alpha", "nemotron-flash", "mimo") when OpenRouter stabilises; keep
-# models.yaml bulk-list order identical (test_model_registry asserts it).
-BULK_MODEL_IDS: Final = ("mimo", "ox-alpha", "nemotron-flash")
-FLAGSHIP_MODEL_IDS: Final = ("ox-alpha-flagship", "nemotron-flagship")
+# SINGLE-MODEL MODE 2026-08-26 (owner call): one provider+model only — OpenCode
+# Zen x-preview-f-free (same-day chain: mimo → tokenbom deepseek → xpreview).
+# Keep models.yaml lists identical (test_model_registry asserts it).
+BULK_MODEL_IDS: Final = ("xpreview",)
+FLAGSHIP_MODEL_IDS: Final = ("xpreview-flagship",)
 
 # --- Statistics (TECHSPEC §8) ---
 BOOTSTRAP_REPLICATES: Final = 2000

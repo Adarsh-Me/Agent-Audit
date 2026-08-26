@@ -1,68 +1,30 @@
 # Model pins — single source of truth (TECHSPEC §2/§3.2).
-# RE-PINNED 2026-08-23: openai/gpt-oss-20b:free was delisted upstream (HTTP 404 on
-# every request, run 6ee157a7) — third bulk slot moves to z-ai/glm-5.2:free
-# ($0.00/1M tok, 256k ctx). Its free pool 429s while the OpenRouter account's
-# free-tier daily cap is exhausted (50 req/day, resets 00:00 UTC); after credits
-# are added (unlocks 1000 free-model req/day) it probes clean.
-# RE-PINNED 2026-08-24: third bulk slot glm moves OFF OpenRouter (0/200 parse_ok
-# across runs 6ee157a7/6b3fd1ea/0e45df57 — pool never opened) onto AiHubMix's
-# coding-glm-5-turbo-free via their Anthropic-compatible /v1/messages. Probed
-# live 2026-08-24: key + model valid on BOTH /v1/messages and /v1/chat/completions.
-# CONSTRAINT (honest): AiHubMix free tier allows only 10 completion attempts per
-# unrecharged account (provider-side message; topup at console.aihubmix.com/topup)
-# — until recharged, bulk-trial duty will produce mostly counted failures after
-# the first ~10 successes. Wiring ships anyway so a recharge flips it live with
-# zero code change.
-#   primary  stealth/ox-alpha            (stealth provider, $0.00/1M tok)
-#   fallback nvidia/nemotron-3.5-lightning:free ($0.00/1M tok)
-# Flagship slots carry the same primary/fallback pair for the P07 checkout demo.
-# All five price at $0.00 today; engine-id rows in client.py PRICING_USD_PER_MTOK
-# must mirror that.
-# RE-PINNED 2026-08-25: AiHubMix removed entirely — its unrecharged-account cap
-# (10 completion tries, then refusal-text-as-200) yielded 0/200 parse_ok on run
-# d593113f. Third bulk slot moves to OpenCode Zen's mimo-v2.5-free via
-# https://opencode.ai/zen/v1/chat/completions. Probed live 2026-08-25: key +
-# model + response_format json_object all accepted ($0 cost; with json_object
-# the reasoning model answers directly in ~6 tok, CoT fully suppressed).
-#   primary  stealth/ox-alpha            (stealth provider, $0.00/1M tok)
-#   fallback nvidia/nemotron-3.5-lightning:free ($0.00/1M tok)
-# Flagship slots carry the same primary/fallback pair for the P07 checkout demo.
-# All five price at $0.00 today; engine-id rows in client.py PRICING_USD_PER_MTOK
-# must mirror that.
-# REORDERED 2026-08-26 (owner call, temporary): bulk list leads with OpenCode
-# Zen's mimo — list order IS trial scheduling priority and must stay identical
-# to constants.BULK_MODEL_IDS (test_model_registry.py asserts list equality).
+# SINGLE-MODEL MODE 2026-08-26 (owner call): audit runs call ONLY ONE provider/
+# model. Current pin: OpenCode Zen's x-preview-f-free via OpenAI-style
+# https://opencode.ai/zen/v1/chat/completions (key: OPENCODE_ZEN_API_KEY).
+# History (all 2026-08-26): OpenRouter pins (stealth/ox-alpha, nemotron)
+# removed → OpenCode mimo-v2.5-free (free pool 429-throttled all morning) →
+# tokenbom deepseek-v4-flash (worked, owner swapped away same evening) → back
+# to OpenCode Zen x-preview-f-free. Restore points in git history.
+# NOTE: OpenCode free pool was returning upstream-unavailable errors at pin
+# time (~15:40 IST); runs count honest provider failures until it heals.
+# Matrix: 1 bulk × 200 + 1 flagship × 20 = 220 trials; constants.py mirrors this.
 bulk:
-  - id: mimo
-    openrouter_id: mimo-v2.5-free
-    version: "mimo-v2.5-free@2026-08-25"
-    json_mode: true          # probed live 2026-08-25; json_object suppresses the CoT detour entirely
-    seed_supported: false    # reasoning model; generous max_tokens stays as headroom
+  - id: xpreview
+    openrouter_id: x-preview-f-free
+    version: "x-preview-f-free@2026-08-26"
+    json_mode: true          # unverified live (pool down at swap time); flip false if parse failures appear
+    seed_supported: false
     base_url: https://opencode.ai/zen/v1
     endpoint: openai
     api_key_env: opencode_zen_api_key
-  - id: ox-alpha
-    openrouter_id: stealth/ox-alpha
-    version: "stealth/ox-alpha@2026-08-23"
-    json_mode: true          # probed live before the recorded run; flip to false on 4xx
-    seed_supported: false    # stealth endpoint ignores seed
-  - id: nemotron-flash
-    openrouter_id: nvidia/nemotron-3.5-lightning:free
-    version: "nemotron-3.5-lightning:free@2026-08-23"
-    json_mode: true
-    seed_supported: false    # :free endpoints ignore seed; CI absorbs variance
 flagship:
   # version carries a -flagship suffix ON PURPOSE: flagship trials reuse (P07,
   # condition) slots already run by bulk, and the response cache keys on
   # (prompt_hash, model_version) — identical labels would let flagship rows
   # silently ride bulk cache entries.
-  - id: ox-alpha-flagship
-    openrouter_id: stealth/ox-alpha
-    version: "stealth/ox-alpha@2026-08-23-flagship"
-    json_mode: true
-    seed_supported: false
-  - id: nemotron-flagship
-    openrouter_id: nvidia/nemotron-3.5-lightning:free
-    version: "nemotron-3.5-lightning:free@2026-08-23-flagship"
+  - id: xpreview-flagship
+    openrouter_id: x-preview-f-free
+    version: "x-preview-f-free@2026-08-26-flagship"
     json_mode: true
     seed_supported: false

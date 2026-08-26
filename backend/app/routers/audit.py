@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.constants import GMV_MIN_INR
+from app.constants import GMV_MIN_INR, TRIALS_PER_FULL_RUN
 from app.db.models import Catalog, Metric, Product, Run, Trial
 from app.db.session import get_session, get_sessionmaker
 from app.engine.runner import RunnerDeps
@@ -87,7 +87,7 @@ async def create_audit(req: AuditRequest, background: BackgroundTasks,
         type=run_type,
         status="queued",
         models={}, seeds={},
-        trials_total=640,
+        trials_total=TRIALS_PER_FULL_RUN,
         started_at=datetime.now(timezone.utc),
     )
     session.add(run)
@@ -105,7 +105,8 @@ async def create_audit(req: AuditRequest, background: BackgroundTasks,
                           progress=cb, run_id=run.id)
 
     background.add_task(job)
-    return {"audit_id": run.id, "status": "queued", "trials_total": 640}
+    return {"audit_id": run.id, "status": "queued",
+            "trials_total": TRIALS_PER_FULL_RUN}
 
 
 @router.get("/api/audit/{run_id}")
@@ -139,7 +140,8 @@ async def get_audit(run_id: str, session: AsyncSession = Depends(get_session)) -
             started = started.replace(tzinfo=timezone.utc)
         elapsed = (datetime.now(timezone.utc) - started).total_seconds()
         if elapsed > 30:
-            eta_s = max(0, int((run.trials_total or 640) * (elapsed / done) - elapsed))
+            eta_s = max(0, int((run.trials_total or TRIALS_PER_FULL_RUN)
+                               * (elapsed / done) - elapsed))
     return {
         "run_id": run.id,
         "status": run.status,

@@ -92,9 +92,9 @@ def build_mcp_asgi_app():
 async def mcp_http_endpoint(request):
     """Request-style endpoint serving EXACT ``/mcp`` with no redirect.
 
-    Starlette's Mount answers a trailing-slash-less POST with 307 -> /mcp/,
+    Starlette's Mount answers a trailing-slash-less POST with 307 → /mcp/,
     and the antideploy edge (Google frontend) rejects the followed second
-    POST with 411 Length Required - so hosted clients that POST exactly
+    POST with 411 Length Required — so hosted clients that POST exactly
     /mcp would never reach us. This bridge runs the ASGI transport inline
     and captures its response. Safe because json_response=True guarantees
     exactly one non-streamed body message per reply.

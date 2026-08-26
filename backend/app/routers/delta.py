@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.constants import TRIALS_PER_FULL_RUN
 from app.db.models import Metric, Run, Trial
 from app.db.session import get_session
 from app.errors import AppError
@@ -103,6 +104,6 @@ async def get_delta(rerun_run_id: str,
         "per_sku_changes": per_sku[:15],
         "recoverable_inr": rev["recoverable_inr"],
         "verdict": verdict,
-        "honest_note": "Both sides measured over the same 640-trial protocol; deltas carry "
-                       "bootstrap CIs, not vibes.",
+        "honest_note": f"Both sides measured over the same {TRIALS_PER_FULL_RUN}-trial "
+                       "protocol; deltas carry bootstrap CIs, not vibes.",
     }

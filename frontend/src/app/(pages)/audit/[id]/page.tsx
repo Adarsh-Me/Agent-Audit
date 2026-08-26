@@ -49,7 +49,7 @@ export default function ProgressPage() {
 
   const [status, setStatus] = useState<AuditStatusResponse['status'] | 'loading'>('loading')
   const [done, setDone] = useState(0)
-  const [total, setTotal] = useState(640)
+  const [total, setTotal] = useState(220)
   const [costUsd, setCostUsd] = useState(0)
   const [etaS, setEtaS] = useState(0)
   const [ticker, setTicker] = useState<SseTrialEvent[]>([])
@@ -86,7 +86,7 @@ export default function ProgressPage() {
         if (!alive) return
         rememberRun(s.run_id)
         setDone(s.trials_done)
-        setTotal(s.trials_total ?? 640)
+        setTotal(s.trials_total ?? 220)
         setCostUsd(s.cost_usd)
         setEtaS(s.eta_s ?? 0)
         setMeta({ merchant: s.merchant ?? null, startedAt: s.started_at ?? null, reason: s.reason ?? null })
@@ -129,7 +129,7 @@ export default function ProgressPage() {
             }
             return s.trials_done
           })
-          setTotal(s.trials_total ?? 640)
+          setTotal(s.trials_total ?? 220)
           setCostUsd(s.cost_usd)
           setEtaS(s.eta_s ?? 0)
           if (s.status !== 'running' && s.status !== 'queued') {

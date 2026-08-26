@@ -22,6 +22,8 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.types import JSON
 
+from app.constants import TRIALS_PER_FULL_RUN
+
 
 class Base(DeclarativeBase):
     pass
@@ -108,7 +110,7 @@ class Run(Base):
     models: Mapped[dict] = mapped_column(JSONType())  # §3.4 snapshot of models.yaml at run time
     seeds: Mapped[dict] = mapped_column(JSONType())  # §3.4 snapshot
     cost_usd: Mapped[float] = mapped_column(Float, default=0.0)
-    trials_total: Mapped[int] = mapped_column(Integer, default=640)  # SC-6
+    trials_total: Mapped[int] = mapped_column(Integer, default=TRIALS_PER_FULL_RUN)  # SC-6
     abort_reason: Mapped[str | None] = mapped_column(Text)  # partial/failed cause, human-readable
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

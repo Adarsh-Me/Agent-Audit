@@ -229,27 +229,30 @@ async def enginecheck(realistic: bool = False,
             "approx_tokens": len(prompt_body) // 4,
         }
 
+    # Registry-driven probe: exercises whatever model is pinned in models.yaml
+    # (SINGLE-MODEL MODE) instead of hardcoding provider slugs that rot.
+    from app.engine.model_registry import load_model_registry
+
+    entry = load_model_registry().bulk[0]
+    key_field = entry.api_key_env or "openrouter_api_key"
+    api_key = getattr(s, key_field, "") or s.openrouter_api_key
+    base = (entry.base_url or "https://openrouter.ai/api/v1").rstrip("/")
+    if not base.endswith("/v1"):
+        base += "/v1"
+    payload: dict[str, object] = {
+        "model": entry.openrouter_id,
+        "max_tokens": 32,
+        "messages": [{"role": "user", "content": prompt_body}],
+    }
+    if entry.json_mode:
+        payload["response_format"] = {"type": "json_object"}
     checks = [
         (
-            "ox-alpha",
-            "https://openrouter.ai/api/v1/chat/completions",
-            {"Authorization": f"Bearer {s.openrouter_api_key}"},
-            {
-                "model": "stealth/ox-alpha",
-                "max_tokens": 32,
-                "messages": [{"role": "user", "content": prompt_body}],
-            },
-        ),
-        (
-            "mimo",
-            "https://opencode.ai/zen/v1/chat/completions",
-            {"Authorization": f"Bearer {s.opencode_zen_api_key}"},
-            {
-                "model": "mimo-v2.5-free",
-                "max_tokens": 32,
-                "response_format": {"type": "json_object"},
-                "messages": [{"role": "user", "content": prompt_body}],
-            },
+            f"{entry.id}:{entry.openrouter_id}",
+            f"{base}/chat/completions",
+            {"Authorization": f"Bearer {api_key}",
+             "Content-Type": "application/json"},
+            payload,
         ),
     ]
     results: dict[str, dict] = {}

@@ -56,7 +56,7 @@ async def test_post_audit_resolves_demo_and_adopts_row(db_env, monkeypatch):
             r = tc.post("/api/audit", json={"catalog_source": "demo"})
             assert r.status_code == 202, r.text
             body = r.json()
-            assert body["status"] == "queued" and body["trials_total"] == 640
+            assert body["status"] == "queued" and body["trials_total"] == 220
 
             # resolved the demo default AND adopted the API-created row
             assert captured["catalog_id"] == catalog_id
@@ -69,8 +69,8 @@ async def test_post_audit_resolves_demo_and_adopts_row(db_env, monkeypatch):
                 row = await s.get(Run, body["audit_id"])
                 assert row is not None
                 assert set(row.models.keys()) == {"bulk", "flagship"}
-                assert len(row.models["bulk"]) == 3
-                assert len(row.models["flagship"]) == 2
+                assert len(row.models["bulk"]) == 1
+                assert len(row.models["flagship"]) == 1
     finally:
         app.dependency_overrides.clear()
 

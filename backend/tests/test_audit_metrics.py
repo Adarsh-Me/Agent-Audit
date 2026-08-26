@@ -62,7 +62,7 @@ async def test_metrics_contract(db_env, monkeypatch):
                     node = node["mean"]
                 assert "value" in node and "ci_low" in node and "ci_high" in node, k
                 assert node["ci_low"] <= node["value"] <= node["ci_high"]
-            assert body["trials"]["total"] == 640
+            assert body["trials"]["total"] == 220
             assert body["score"]["value"] == pytest.approx(
                 100 * sum(v for v in body["score"]["components"].values()) / 5, rel=1e-6
             )

@@ -112,7 +112,7 @@ export default function DeltaPage() {
         </Badge>
       </div>
       <p className='text-muted-foreground -mt-3 text-sm'>
-        Same 640-trial protocol against the mirrored catalog. Original run{' '}
+        Same trial protocol against the mirrored catalog. Original run{' '}
         <span className='font-mono text-xs'>{delta.original_run_id.slice(0, 8)}</span> vs re-run{' '}
         <span className='font-mono text-xs'>{delta.rerun_run_id.slice(0, 8)}</span>.
       </p>

@@ -2,7 +2,7 @@
 
 Key: (prompt_hash, model_version). A re-run against an UNCHANGED catalog is ~100%
 cache-served (< 60 s, $0 marginal). A remediated re-run changes every listing line,
-so it is a full fresh 640-trial run (SCHEMA SC-3) — budgeted and timed as such.
+so it is a full fresh full-matrix run (SCHEMA SC-3) — budgeted and timed as such.
 """
 from __future__ import annotations
 

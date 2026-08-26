@@ -22,10 +22,12 @@ def test_scoring_config_yaml_matches_constants():
 
 
 def test_run_matrix_arithmetic():
-    # TECHSPEC §22: 3 bulk × 200 + 40 flagship = 640; null split 400/240
-    assert C.BULK_MODEL_COUNT * C.TRIALS_PER_BULK_MODEL + 40 == C.TRIALS_PER_FULL_RUN
+    # SINGLE-MODEL MODE 2026-08-26: 1 bulk × 200 + 1 flagship × 20 = 220; null split 140/80
+    assert (C.BULK_MODEL_COUNT * C.TRIALS_PER_BULK_MODEL
+            + C.FLAGSHIP_MODEL_COUNT * C.PERSONA_COUNT == C.TRIALS_PER_FULL_RUN)
     per_model_null = 60 + 60  # C1 + C2
-    assert per_model_null * C.BULK_MODEL_COUNT + 40 == C.NULL_ALLOWED_TRIALS
+    assert (per_model_null * C.BULK_MODEL_COUNT
+            + C.FLAGSHIP_MODEL_COUNT * C.PERSONA_COUNT == C.NULL_ALLOWED_TRIALS)
     assert 80 * C.BULK_MODEL_COUNT == C.FORCED_TRIALS
     assert C.NULL_ALLOWED_TRIALS + C.FORCED_TRIALS == C.TRIALS_PER_FULL_RUN
 

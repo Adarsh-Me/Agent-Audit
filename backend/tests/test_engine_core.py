@@ -23,9 +23,10 @@ def trials(registry):
     return ts
 
 
-def test_matrix_is_exactly_640(trials):
+def test_matrix_shape_single_model(trials):
+    # SINGLE-MODEL MODE 2026-08-26: 1 bulk × 200 + 1 flagship × 20 = 220
     counts = conditions.matrix_counts(trials)
-    assert counts == {"total": 640, "null_allowed": 400, "forced": 240}
+    assert counts == {"total": 220, "null_allowed": 140, "forced": 80}
 
 
 def test_seed_determinism():
@@ -47,9 +48,9 @@ def test_shuffle_seeds_distinct_and_shared():
 
 def test_flagship_uses_c1_s1_and_tier_tag(trials):
     flag = [t for t in trials if t.tier == "flagship"]
-    assert len(flag) == 40
+    assert len(flag) == 20
     assert all(t.condition == "C1-s1" for t in flag)
-    assert {t.model for t in flag} == {"ox-alpha-flagship", "nemotron-flagship"}
+    assert {t.model for t in flag} == {"xpreview-flagship"}
 
 
 def test_c3_forced_c12_null_allowed(trials):

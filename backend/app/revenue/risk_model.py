@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from app.constants import S_AGENT_DEFAULT, S_AGENT_SLIDER
+from app.constants import S_AGENT_DEFAULT, S_AGENT_SLIDER, TRIALS_PER_FULL_RUN
 
 GMV_DEMO_DEFAULT_INR = 800_000
 
@@ -51,7 +51,7 @@ def compute_revenue(inputs: RevenueInputs) -> dict:
                         "ci_low": round(inputs.f_task_ci[0], 4),
                         "ci_high": round(inputs.f_task_ci[1], 4),
                         "note": "share of agent shopping tasks that ended in no purchase "
-                                "(640-trial audit)"},
+                                f"({TRIALS_PER_FULL_RUN}-trial audit)"},
         },
         "revenue_at_risk_inr": {
             "value": round(rar_point),

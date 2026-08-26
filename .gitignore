@@ -36,3 +36,6 @@ uvicorn_live*.log
 backend/.refire_payload.json
 *-shm
 *-wal
+
+# agent scratch scripts
+backend/scratch/
