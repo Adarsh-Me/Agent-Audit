@@ -177,7 +177,7 @@ flowchart LR
 ├── mcp-server/server.mjs  # stdio MCP for local clients
 ├── demo-store/            # 40-product controlled world + static site
 ├── fixtures/              # framing_variants.json + golden test inputs
-├── Docs/                  # PRD · TECHSPEC · SCHEMA · APPFLOW · DESIGN · BUILDLOG
+├── docs/assets/           # banner images used in this README
 ├── SAFETY.md              # money-action bounds (test-mode / whitelist / cap)
 ├── Makefile               # make test · make validate
 ├── docker-compose.yml     # optional local Postgres
