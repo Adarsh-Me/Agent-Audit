@@ -1,20 +1,36 @@
 # Model pins — single source of truth (TECHSPEC §2/§3.2).
-# SINGLE-MODEL MODE 2026-08-27: owner swap to Sarvam 105b (sarvam-105b-conversations)
-# via api.sarvam.ai. Wire format is OpenAI-style (sarvamai SDK exposes
-# client.chat.completions), routed through the existing base_url/api_key_env
-# machinery — the engine never imports the SDK directly. Key in backend/.env
-# (gitignored); the in-tree field is sarvam_api_key. Pricing in
-# backend/app/engine/client.py PRICING_USD_PER_MTOK must mirror these ids.
-# Restore points in git history (OpenCode Zen x-preview-f-free, etc.).
-# Matrix: 1 bulk × 200 + 1 flagship × 20 = 220 trials; constants.py mirrors this.
+# 2026-08-27 owner directive: STAY on Sarvam 105b even if it is slower
+# than the previous OpenCode Zen pin. The user explicitly chose Sarvam
+# for buildathon; the time budget is accepted.
+#
+# Live-fire measurement (suta.in 100-SKU, 34k input tokens, 2026-08-27):
+#   first run on this pin: ~28 min for 220 trials; parse_ok=0/220 because
+#   the model returned truncated JSON with finish_reason=length under
+#   max_tokens=3500. Half of that 28 min was the 3-attempt HTTP retry
+#   loop on every parse-fail; ~12 min was the global 3.2s rate-cap guard
+#   from the previous free-tier pin.
+#
+# Perf fixes shipped on this pin (kept for the long run):
+#   - json_mode: false  — Sarvam doesn't honor response_format reliably;
+#     the engine's existing parser already salvages JSON from prose.
+#   - max_tokens: 6000  — fits Sarvam's reasoning pre-text + the JSON.
+#   - MIN_REQUEST_INTERVAL_S env-driven: set
+#     SARVAM_REQUEST_INTERVAL_S=0 to disable the 3.2s rate-cap guard.
+#   - enginecheck?realistic=1 parses the response so a 200 with
+#     finish_reason=length now shows as parse_ok:false, not as green.
+#
+# Restore points in git history: ox-alpha+nemotron (multi-model 2026-08-22),
+# mimo (2026-08-25), tokenbom deepseek-v4-flash (2026-08-26),
+# OpenCode Zen x-preview-f-free (2026-08-27 afternoon, reverted same-day).
+#
+# Matrix: 1 bulk × 200 + 1 flagship × 20 = 220 trials; constants.py mirrors.
 bulk:
   - id: sarvam-105b
     openrouter_id: sarvam-105b-conversations
     version: "sarvam-105b-conversations@2026-08-27"
     json_mode: false  # 2026-08-27: Sarvam didn't honor response_format on real 100-SKU
-                      # prompts — every trial hit parse-fail → 3-attempt retry loop
-                      # which turned a 5-min audit into 28 min. Prompt-only JSON
-                      # enforcement + the existing extractor handles prose wrapping.
+                      # prompts; prompt-only JSON enforcement + the existing
+                      # parser's prose-wrapper salvage handles the response.
     seed_supported: false
     base_url: https://api.sarvam.ai
     endpoint: openai
