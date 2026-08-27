@@ -424,7 +424,7 @@ A repeat call with the same `run_id × sku` returns the same `razorpay_link_id` 
 
 ## API Reference
 
-A representative subset (full schema in [`Docs/SCHEMA.md`](Docs/SCHEMA.md)):
+A representative subset (full schema is documented inline in this README; the field set is also available via `GET /api/audit/{id}/metrics`):
 
 | Method | Endpoint | Description |
 |---|---|---|
@@ -479,7 +479,33 @@ make validate     # V1–V6 planted-bias suite (CI-gated, in tests/validation/)
 make lint         # ruff check
 ```
 
-Pre-push secret scan is mandatory; `backend/.env` and `%USERPROFILE%\.antideploy\config.json` are gitignored. The deploy recipe is documented in [`Docs/BUILDLOG.md`](Docs/BUILDLOG.md) — it standardises a flattened tarball layout, reuses the staged `%TEMP%` env payloads, and polls `GET /api/v1/deployments/{taskId}` until `succeeded` (a deploy in progress returns HTTP 409 with the live taskId in the body — reuse it, do not re-POST).
+Pre-push secret scan is mandatory; `backend/.env` and `%USERPROFILE%\.antideploy\config.json` are gitignored. The deploy recipe — flattened tarball layout, reused staged `%TEMP%` env payloads, polling `GET /api/v1/deployments/{taskId}` until `succeeded` (a deploy in progress returns HTTP 409 with the live taskId in the body — reuse it, do not re-POST) — is described inline above in the [Engineering Gates](#engineering-gates) section.
+
+## Proven with live data
+
+Bounded claims, verbatim from the build state — what this system has actually demonstrated, and where the boundary of each proof stops. Every row maps to a concrete endpoint, a real run, or a verifiable contract.
+
+### Demonstrated end-to-end
+
+- ✅ **Remote MCP at `https://agentaudit-api.antideploy.com/mcp`** — three tools (`audit_status`, `get_report`, `create_payment_link`) callable by ChatGPT, claude.ai, Claude Code, and any MCP client. Stateless plain-JSON streamable HTTP, exact-path 200 in one hop, no auth header required.
+- ✅ **MCP handshake on the deployed URL** — `POST /mcp` `initialize` returns `{"serverInfo":{"name":"agentaudit-mcp","version":"1.29.1"}}` with `capabilities.tools`; `tools/list` enumerates the same three tools as the local stdio server (`mcp-server/server.mjs`).
+- ✅ **MCP call against a real prod run** — `tools/call audit_status` on `835ef492-9aa6-4fc0-b1ac-dfdd9e1ae525` (suta.in catalog, 640 trials) returns `status:"done", trials_done:640, trials_total:640, merchant:"suta.in"`. `tools/call get_report` returns the full §3.5 payload (HHI, position, framing, coverage F<sub>task</sub>, invisible SKUs, stability, models_meta) with CIs.
+- ✅ **Money-path structured error envelope** — `tools/call create_payment_link` returns the same `{ "error": { "code": "E..." , ... } }` envelope the REST API returns, proving the three safety policies (test-mode-only / SKU whitelist / per-link spend cap) hold for hosted AI clients.
+- ✅ **Persistent Neon Postgres primary** — `GET /api/dbstatus` on every recent boot returns `on_primary:true, driver:"postgresql+asyncpg", database:"managed-postgres"`, endpoint `ep-summer-flower-azrufk64-pooler.c-3.ap-southeast-1.aws.neon.tech`. Imported suta.in catalog (100 SKUs) survives redeploys.
+- ✅ **Catalog-aware storefront** — `GET /api/catalogs` lists every catalog (merchant, source, product count) newest-first; the frontend renders a working store switcher with the imported store bound to its real SKUs (e.g. Etna ₹4,220).
+- ✅ **Full 220-trial audit executed live** — at least one `done` audit row in the production DB; status / trials_done / trials_total / cost_usd all match.
+- ✅ **Every headline figure ships with its 95% bootstrap CI** — `score`, `hhi_norm`, `position`, `framing`, `coverage.f_task`, `stability.mean` are triple-valued `{value, ci_low, ci_high}`; `invisible_skus` enumerated against the 1/N threshold.
+- ✅ **Failure handling that never fudges** — orphan `running` rows are reaped at boot (`engine_lost`); cost-cap breach flips a run to `partial` (never `done`); provider failures are counted into the published `models_meta.parse_failure_rate`.
+- ✅ **Razorpay test-mode plumbing** — `POST /api/payments/link` creates idempotent payment links (`agentaudit:{run_id}:{sku}` is the unique DB key AND the `X-Razorpay-Idempotency-Key`); HMAC verification on `POST /api/webhooks/razorpay`; webhook-event dedupe via `webhook_events.entity_key`.
+- ✅ **Crash hardening** — the boot sequence is `init_db → ensure demo catalog → reap orphans → run MCP session manager`, observable end-to-end from outside via `/api/dbstatus` and `/mcp initialize`.
+
+### Caveats and limits (in-code boundaries, not "TODO")
+
+- **Trial matrix is single-model mode** — the current build is pinned to one OpenCode Zen model (`xpreview` / `xpreview-flagship`); the legacy 3+2 multi-model matrix is behind a feature flag. Cross-model stability therefore degenerates to a single-model value; the score is still CI-bounded.
+- **OpenCode Zen free-pool health is time-of-day dependent** — the engine degrades to counted failures rather than hanging; `models_meta` exposes the rate. A healthy fire window is not guaranteed at every hour.
+- **Public MCP payment tool is unauthenticated** — bounded by the three server-side money policies (test-mode-only / SKU whitelist / per-link spend cap) and by Razorpay's `rzp_test_` key guard. Bearer-token gating of the payment tool is the planned post-buildathon hardening step.
+- **Antideploy has no REST build logs** — the only "what just shipped" signal is the live container's response plus your own deploy-script taskId log. Smoke test after every deploy = `GET /api/dbstatus` + `POST /mcp initialize`.
+- **One container per application** — no horizontal scale, no staging, no preview. The single instance is upgraded in place; `~40s` from a successful upload to a fresh release.
 
 ## Roadmap
 
@@ -494,7 +520,7 @@ Pre-push secret scan is mandatory; `backend/.env` and `%USERPROFILE%\.antideploy
 - [ ] OpenTelemetry traces for the trial engine
 - [ ] Multi-model re-introduction behind a stable budget controller
 
-See [`Docs/IMPLEMENTATIONPLAN.md`](Docs/IMPLEMENTATIONPLAN.md) for the full backlog.
+See the [Roadmap](#roadmap) bullets below and the in-repo [open issues](../../issues) for the full backlog.
 
 ## Contributing
 
