@@ -260,7 +260,32 @@ async def enginecheck(realistic: bool = False,
         for name, url, headers, payload in checks:
             try:
                 r = await client.post(url, json=payload, headers=headers)
-                results[name] = {"http": r.status_code, "body": r.text[:200]}
+                body_preview = r.text[:200]
+                parsed_ok = False
+                parsed_choice = None
+                if r.status_code < 400:
+                    # 2026-08-27: realistic-mode probe now also tries to parse
+                    # the assistant content the same way the engine does, so
+                    # a 200 with content=null shows up as "parse_ok":false —
+                    # this is what the previous enginecheck missed (which made
+                    # the 28-min run's 0/220 parse failure look like a
+                    # passing health check).
+                    try:
+                        msg = r.json()["choices"][0]["message"]
+                        from app.engine.parse import parse_response as _pr
+                        content = msg.get("content")
+                        if isinstance(content, str) and content.strip():
+                            parsed = _pr(content, valid_skus=set(), null_allowed=True)
+                            parsed_ok = parsed.parse_ok
+                            parsed_choice = parsed.choice
+                    except Exception:
+                        pass
+                results[name] = {
+                    "http": r.status_code,
+                    "body": body_preview,
+                    "parse_ok": parsed_ok,
+                    "parsed_choice": parsed_choice,
+                }
             except Exception as exc:  # noqa: BLE001 — diagnostics endpoint
                 results[name] = {"error": f"{type(exc).__name__}: {exc}"[:200]}
     out.update(results)

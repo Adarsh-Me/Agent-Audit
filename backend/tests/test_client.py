@@ -49,9 +49,10 @@ async def test_success_and_cost_math(entry):
         assert out.content.startswith('{"product_id"')
         assert out.latency_ms >= 0
         assert abs(out.cost_usd - estimate_cost_usd("sarvam-105b", 500, 50)) < 1e-9
-        # json mode requested; seed omitted because pinned models don't support it
+        # 2026-08-27: Sarvam pin flips json_mode false; payload no longer sends
+        # response_format, and the engine relies on prompt-only JSON + extractor.
         assert "seed" not in calls[0]
-        assert calls[0]["response_format"] == {"type": "json_object"}
+        assert "response_format" not in calls[0]
     finally:
         await client.aclose()
 

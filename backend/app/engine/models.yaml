@@ -11,7 +11,10 @@ bulk:
   - id: sarvam-105b
     openrouter_id: sarvam-105b-conversations
     version: "sarvam-105b-conversations@2026-08-27"
-    json_mode: true
+    json_mode: false  # 2026-08-27: Sarvam didn't honor response_format on real 100-SKU
+                      # prompts — every trial hit parse-fail → 3-attempt retry loop
+                      # which turned a 5-min audit into 28 min. Prompt-only JSON
+                      # enforcement + the existing extractor handles prose wrapping.
     seed_supported: false
     base_url: https://api.sarvam.ai
     endpoint: openai
@@ -24,7 +27,7 @@ flagship:
   - id: sarvam-105b-flagship
     openrouter_id: sarvam-105b-conversations
     version: "sarvam-105b-conversations@2026-08-27-flagship"
-    json_mode: true
+    json_mode: false
     seed_supported: false
     base_url: https://api.sarvam.ai
     endpoint: openai

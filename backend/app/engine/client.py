@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import time
 from dataclasses import dataclass, field
 from typing import Final
@@ -36,11 +37,41 @@ PRICING_USD_PER_MTOK: dict[str, tuple[float, float]] = {
     "sarvam-105b-flagship": (1.0, 1.0),  # TBD — same; flagship reuses the model
 }
 
-# Free-tier endpoints allow ~20 requests/min; a triple-429 trial aborts the whole
-# run to partial (runner catches ProviderError), so pace call STARTS globally to
-# stay under the cap with headroom. Latency (~seconds) hides most of this interval,
-# so wall-clock impact is minimal for the sequential trial loop.
+# Global min-interval between request starts (free-tier rate-cap guard).
+# Provider-specific:
+#   OpenRouter :free / OpenCode Zen :free  — ~20 req/min, INTERVAL_S=3.2 (default)
+#   Sarvam paid 105b  — set INTERVAL_S=0 via SARVAM_REQUEST_INTERVAL_S env
+#
+# 2026-08-27: 28-min audit on Sarvam had two stacked bottlenecks — this guard
+# added 12 min of pure pacing on top of a 3-attempt retry loop (~21 min) from
+# parse failures. Both fixed by (a) json_mode:false in models.yaml (kills the
+# retry loop) and (b) SARVAM_REQUEST_INTERVAL_S=0 (kills the guard). The
+# 3.2 s default remains so OpenRouter-free fallback still paces correctly.
 MIN_REQUEST_INTERVAL_S: Final = 3.2
+
+
+def get_min_request_interval_s(entry) -> float:
+    """Per-entry pacing override.
+
+    Reads ``<API_KEY_FIELD>_REQUEST_INTERVAL_S`` where ``API_KEY_FIELD`` is the
+    Settings field name (e.g. ``sarvam_api_key`` → env var
+    ``SARVAM_REQUEST_INTERVAL_S``). The trailing ``_api_key`` is stripped so
+    operators don't see the doubled ``SARVAM_API_KEY_REQUEST_INTERVAL_S``.
+    Falls back to ``MIN_REQUEST_INTERVAL_S`` for providers without a hint.
+    Pass 0 (or "0") to disable the guard entirely.
+    """
+    if entry is not None and entry.api_key_env:
+        base = entry.api_key_env.upper()
+        if base.endswith("_API_KEY"):
+            base = base[: -len("_API_KEY")]
+        env_name = f"{base}_REQUEST_INTERVAL_S"
+        raw = os.environ.get(env_name)
+        if raw is not None and raw != "":
+            try:
+                return float(raw)
+            except ValueError:
+                pass
+    return MIN_REQUEST_INTERVAL_S
 
 # Wall-clock ceiling per single completion attempt (see wait_for in chat()).
 PER_ATTEMPT_CAP_S: Final = 75.0
@@ -122,6 +153,8 @@ class OpenRouterClient:
         self._api_key = api_key if api_key is not None else get_settings().openrouter_api_key
         self._semaphore = asyncio.Semaphore(concurrency)
         self.breakers: dict[str, CircuitBreaker] = {}
+        # 0 = disable pacing; positive = seconds between request starts.
+        # Caller-supplied override (tests) wins; else default.
         self._min_interval = (MIN_REQUEST_INTERVAL_S if min_interval_s is None
                               else min_interval_s)
         self._last_start = 0.0
@@ -182,6 +215,24 @@ class OpenRouterClient:
         if not breaker.allow():
             raise ProviderError(f"circuit breaker open for {entry.openrouter_id}")
 
+        # Per-entry pacing override (env-driven: <API_KEY_ENV>_REQUEST_INTERVAL_S).
+        # Tests can still pass min_interval_s=0 to the constructor for a hard
+        # global override.
+        prev_interval = self._min_interval
+        per_entry_interval = get_min_request_interval_s(entry)
+        # The ctor default takes precedence unless the ctor already pinned 0
+        # (i.e. a test explicitly asked for it). For all other cases the env
+        # hint per provider is authoritative.
+        if prev_interval != 0.0:
+            self._min_interval = per_entry_interval
+        try:
+            return await self._do_chat(entry, prompt, seed, breaker, temperature, system_feedback)
+        finally:
+            self._min_interval = prev_interval
+
+    async def _do_chat(self, entry: ModelEntry, prompt: str, seed: int,
+                      breaker: CircuitBreaker, temperature: float,
+                      system_feedback: str | None) -> LLMResponse:
         url, headers, style = self._route_for(entry)
         messages = [{"role": "user", "content": prompt}]
         if system_feedback:
