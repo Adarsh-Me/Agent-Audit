@@ -237,6 +237,11 @@ class OpenRouterClient:
         messages = [{"role": "user", "content": prompt}]
         if system_feedback:
             messages.append({"role": "user", "content": system_feedback})
+        # 2026-08-27: bumped from 3500 → 6000 — Sarvam 105b emits a short "thinking"
+        # pre-text before the JSON, and 3500 truncated the actual answer with
+        # finish_reason=length. Bigger output budget means a single attempt lands
+        # the full JSON (no parse-fail → no retry loop) AND Sarvam's reasoning
+        # extension no longer runs the budget dry.
         if style == "anthropic":
             # Anthropic /v1/messages: no response_format (JSON enforced by the
             # prompt itself), no seed, no OpenRouter reasoning extension.
@@ -244,17 +249,14 @@ class OpenRouterClient:
                 "model": entry.openrouter_id,
                 "messages": messages,
                 "temperature": temperature,
-                "max_tokens": 3500,
+                "max_tokens": 6000,
             }
         else:
             payload = {
                 "model": entry.openrouter_id,
                 "messages": messages,
                 "temperature": temperature,
-                # reasoning-style endpoints otherwise burn minutes (and their whole
-                # output budget) on chain-of-thought before the JSON: measured
-                # 11.8s/452tok -> 2.4s/52tok on a catalog-size prompt (2026-08-22)
-                "max_tokens": 3500,
+                "max_tokens": 6000,
             }
             if not entry.base_url:
                 # OpenRouter-specific extension — alternate gateways may reject it.

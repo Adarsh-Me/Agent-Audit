@@ -51,7 +51,7 @@ async def test_openai_style_base_with_trailing_v1_is_not_doubled():
         body = json.loads(calls[0].content)
         assert "reasoning" not in body  # OpenRouter-only extension dropped
         assert body["response_format"] == {"type": "json_object"}
-        assert body["max_tokens"] == 3500  # reasoning-model headroom
+        assert body["max_tokens"] == 6000  # 2026-08-27: Sarvam reasoning + JSON headroom
     finally:
         await client.aclose()
 
@@ -85,7 +85,7 @@ async def test_anthropic_style_url_headers_payload_and_parse():
         body = json.loads(req.content)
         # no OpenAI/OpenRouter-only fields on the anthropic wire
         assert "response_format" not in body and "reasoning" not in body
-        assert body["max_tokens"] == 3500
+        assert body["max_tokens"] == 6000
     finally:
         await client.aclose()
 
