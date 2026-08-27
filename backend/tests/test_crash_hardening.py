@@ -152,7 +152,7 @@ async def test_progress_flushes_at_least_every_20_trials(db_env, registry):
 
 async def _execute_via_cache(db_env, registry, *, null_allowed: bool):
     """Seed a poisoned cache row (decline), then execute ONE trial against it."""
-    spec = TrialSpec(model="xpreview", model_version=registry.by_id("xpreview").version,
+    spec = TrialSpec(model="sarvam-105b", model_version=registry.by_id("sarvam-105b").version,
                      tier="bulk", persona_id="P01",
                      condition="C3-B-s1" if not null_allowed else "C1-s1",
                      seed=7, null_allowed=null_allowed)

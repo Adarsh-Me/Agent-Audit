@@ -5,6 +5,11 @@ payload shape, and response parsing for each wire format. Found while wiring
 mimo-v2.5-free on OpenCode Zen (2026-08-25), deepseek-v4-flash on tokenbom
 (2026-08-26, same-day swap), and x-preview-f-free back on OpenCode Zen
 (2026-08-26, current pin).
+
+2026-08-27: provider swapped to Sarvam 105b (api.sarvam.ai, OpenAI-style).
+Routing assertions (URL dedup, header, payload) still hold — the engine
+imports the SDK only as a development-time helper; production traffic is
+plain HTTP via the existing base_url/api_key_env machinery.
 """
 import json
 
@@ -16,8 +21,10 @@ from app.engine.model_registry import ModelEntry
 
 
 def _entry(**kw) -> ModelEntry:
-    return ModelEntry(id="xpreview", openrouter_id="x-preview-f-free",
-                      version="x-preview-f-free@2026-08-26", **kw)
+    base = dict(id="xpreview", openrouter_id="x-preview-f-free",
+                version="x-preview-f-free@2026-08-26")
+    base.update(kw)
+    return ModelEntry(**base)
 
 
 async def test_openai_style_base_with_trailing_v1_is_not_doubled():
@@ -119,5 +126,37 @@ async def test_openai_style_alt_base_without_v1_appends_it():
     try:
         await client.chat(entry, "prompt", seed=1)
         assert str(calls[0].url) == "https://gw.example.com/v1/chat/completions"
+    finally:
+        await client.aclose()
+
+
+async def test_sarvam_endpoint_uses_openai_style_and_sarvam_key():
+    """2026-08-27 owner swap: Sarvam 105b is OpenAI-style chat.completions over
+    https://api.sarvam.ai/v1/chat/completions with the sarvam_api_key header."""
+    calls: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        return httpx.Response(200, json={
+            "choices": [{"message": {"content": '{"product_id": "sku_007"}'}}],
+            "usage": {"prompt_tokens": 261, "completion_tokens": 6},
+        }, request=httpx.Request("POST", "https://x"))
+
+    client = OpenRouterClient(
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+        min_interval_s=0)
+    entry = _entry(openrouter_id="sarvam-105b-conversations",
+                   base_url="https://api.sarvam.ai",
+                   api_key_env="sarvam_api_key")
+    try:
+        out = await client.chat(entry, "prompt", seed=1)
+        assert out.content == '{"product_id": "sku_007"}'
+        assert str(calls[0].url) == "https://api.sarvam.ai/v1/chat/completions"
+        assert req_headers_bearer(calls[0]) == get_settings().sarvam_api_key
+        body = json.loads(calls[0].content)
+        assert body["model"] == "sarvam-105b-conversations"
+        # OpenAI-style + json mode + no OpenRouter reasoning extension
+        assert "reasoning" not in body
+        assert body["response_format"] == {"type": "json_object"}
     finally:
         await client.aclose()

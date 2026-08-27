@@ -27,13 +27,13 @@ from app.engine.model_registry import ModelEntry
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 # USD per 1M tokens (input, output) — engine ids per SCHEMA §2.3.
-# SINGLE-MODEL MODE 2026-08-26: OpenCode Zen FREE-tier endpoint ($0.00 models);
-# ledger will NOT meter spend here (nothing to meter). Rows MUST exist for
-# every engine id — the (1.0, 1.0) fallback below would otherwise bill phantom
-# cost toward the run's cap.
+# SINGLE-MODEL MODE 2026-08-27: Sarvam 105b via api.sarvam.ai (OpenAI-style
+# chat.completions). Owner hasn't published a free tier; keep ledger rows
+# present so the (1.0, 1.0) fallback doesn't bill phantom cost. UPDATE these
+# numbers when pricing is confirmed — they affect the COST_CAP_USD abort.
 PRICING_USD_PER_MTOK: dict[str, tuple[float, float]] = {
-    "xpreview": (0.0, 0.0),
-    "xpreview-flagship": (0.0, 0.0),
+    "sarvam-105b": (1.0, 1.0),            # TBD — owner to confirm Sarvam rates
+    "sarvam-105b-flagship": (1.0, 1.0),  # TBD — same; flagship reuses the model
 }
 
 # Free-tier endpoints allow ~20 requests/min; a triple-429 trial aborts the whole

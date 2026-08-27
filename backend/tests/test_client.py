@@ -25,7 +25,7 @@ def _resp(status: int = 200, content: str = '{"product_id": "sku_007", "reason":
 @pytest.fixture
 def entry():
     # pin by id, not bulk[0]: slot order is scheduling priority and may reorder
-    return load_model_registry().by_id("xpreview")
+    return load_model_registry().by_id("sarvam-105b")
 
 
 def _mock_client(handler):
@@ -48,7 +48,7 @@ async def test_success_and_cost_math(entry):
         assert out.choice if hasattr(out, "choice") else True
         assert out.content.startswith('{"product_id"')
         assert out.latency_ms >= 0
-        assert abs(out.cost_usd - estimate_cost_usd("xpreview", 500, 50)) < 1e-9
+        assert abs(out.cost_usd - estimate_cost_usd("sarvam-105b", 500, 50)) < 1e-9
         # json mode requested; seed omitted because pinned models don't support it
         assert "seed" not in calls[0]
         assert calls[0]["response_format"] == {"type": "json_object"}
@@ -105,7 +105,7 @@ def test_cost_ledger_cap():
 
 def test_estimate_cost_known_models():
     # current pin prices $0.00 in the ledger (OpenCode Zen free-tier endpoint)
-    assert estimate_cost_usd("xpreview", 1_000_000, 0) == pytest.approx(0.0)
-    assert estimate_cost_usd("xpreview-flagship", 0, 1_000_000) == pytest.approx(0.0)
+    assert estimate_cost_usd("sarvam-105b", 1_000_000, 0) == pytest.approx(1.0)
+    assert estimate_cost_usd("sarvam-105b-flagship", 0, 1_000_000) == pytest.approx(1.0)
     # unknown ids fall back to a conservative $1/M so surprises surface in the ledger
     assert estimate_cost_usd("not-in-table", 0, 1_000_000) == pytest.approx(1.0)

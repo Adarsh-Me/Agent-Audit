@@ -12,6 +12,10 @@ python-multipart==0.0.20
 # Remote MCP (streamable HTTP at /mcp) — 1.x line: 2.x forces starlette>=1.0,
 # which fastapi==0.115.12 forbids (<0.47). Verified compatible pair locally.
 mcp==1.29.1
+# Sarvam AI SDK — OpenAI-style chat.completions; base_url/api_key_env drives the
+# existing routing, so the engine never imports sarvamai directly (no SDK
+# upgrade can break a running audit).
+sarvamai==0.1.31a4
 
 # dev / test
 pytest==8.3.5

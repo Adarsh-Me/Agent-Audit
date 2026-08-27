@@ -34,8 +34,8 @@ FORCED_CONDITIONS: Final = ("C3-A-s1", "C3-A-s2", "C3-B-s1", "C3-B-s2")
 # SINGLE-MODEL MODE 2026-08-26 (owner call): one provider+model only — OpenCode
 # Zen x-preview-f-free (same-day chain: mimo → tokenbom deepseek → xpreview).
 # Keep models.yaml lists identical (test_model_registry asserts it).
-BULK_MODEL_IDS: Final = ("xpreview",)
-FLAGSHIP_MODEL_IDS: Final = ("xpreview-flagship",)
+BULK_MODEL_IDS: Final = ("sarvam-105b",)
+FLAGSHIP_MODEL_IDS: Final = ("sarvam-105b-flagship",)
 
 # --- Statistics (TECHSPEC §8) ---
 BOOTSTRAP_REPLICATES: Final = 2000

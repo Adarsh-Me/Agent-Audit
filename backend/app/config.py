@@ -11,6 +11,7 @@ class Settings(BaseSettings):
 
     openrouter_api_key: str = ""
     opencode_zen_api_key: str = ""
+    sarvam_api_key: str = ""
     razorpay_key_id: str = ""
     razorpay_key_secret: str = ""
     razorpay_webhook_secret: str = ""

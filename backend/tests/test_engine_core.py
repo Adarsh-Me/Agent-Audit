@@ -50,7 +50,7 @@ def test_flagship_uses_c1_s1_and_tier_tag(trials):
     flag = [t for t in trials if t.tier == "flagship"]
     assert len(flag) == 20
     assert all(t.condition == "C1-s1" for t in flag)
-    assert {t.model for t in flag} == {"xpreview-flagship"}
+    assert {t.model for t in flag} == {"sarvam-105b-flagship"}
 
 
 def test_c3_forced_c12_null_allowed(trials):
