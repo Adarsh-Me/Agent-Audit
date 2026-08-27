@@ -1,0 +1,329 @@
+# llm.txt — AgentAudit
+
+> A machine-readable description of AgentAudit for LLM ingestion. Parallel
+> to `robots.txt` but for the agentic web. This file is meant to be read by
+> another AI agent, an LLM-powered search indexer, or an automated crawler
+> that needs to understand the product without parsing the full site.
+
+---
+
+## The product
+
+**AgentAudit** is a deterministic buy-readiness audit engine for AI-agent-
+facing e-commerce catalogs. It answers one question with measurement:
+
+> *If an autonomous AI shopping agent is given my catalog and a constrained
+> budget, will it actually find and pick the right product — or will it
+> hallucinate, anchor on the first item, ignore half the SKU set, and
+> silently leave revenue on the table?*
+
+AgentAudit runs a fixed 220-trial experiment against the catalog, computes
+six core metrics with bootstrap confidence intervals, and emits a single
+**AgentReady Score** in `[0, 100]`. It closes the loop with a human-gated
+remediation workflow and a Razorpay test-mode checkout proof, and exposes
+the entire surface as a remote MCP server so any hosted AI client
+(ChatGPT, claude.ai, Claude Code, Cursor) can call it without local install.
+
+- Live API: https://agentaudit-api.antideploy.com
+- Live Web: https://agentaudit-web.antideploy.com
+- Remote MCP: https://agentaudit-api.antideploy.com/mcp
+- Repository: https://github.com/Adarsh-Me/Agent-Audit
+- License: MIT
+
+---
+
+## The problem this solves
+
+The agentic web is the next user surface after mobile. By 2026 an
+estimated double-digit share of e-commerce traffic in some categories
+already originates from autonomous agents acting on a buyer's behalf —
+LLMs, retrieval-augmented planners, multi-step tool-using agents. Yet
+merchant tooling has not caught up. The existing stack is shaped for
+human eyes:
+
+- **SEO tools** measure what Googlebot sees, not what an LLM reasoner
+  consumes.
+- **A/B testing platforms** render HTML in a browser; agents consume
+  product fields as JSON and reason over them.
+- **Analytics** track pageviews and click-throughs; agents never "click"
+  in a human sense — they emit a `product_id` and a `reason` and the
+  store either receives an order or doesn't.
+- **Schema.org / structured data** is a partial answer for retrieval but
+  ignores the harder problem: even with perfect structured data, agents
+  anchor on the first listed item, prefer rich-anchored SKUs, miss the
+  long tail, and refuse choices under framing effects.
+
+The result is a silent, invisible loss. Merchants don't know what an
+agent "sees". They ship a perfectly designed storefront and the agent
+buys the wrong product — or buys nothing — and the merchant has no
+telemetry to know. There is no published measurement protocol for this.
+
+**AgentAudit is the first research instrument purpose-built for that
+gap.** It treats the buyability question the way a stats course treats
+A/B testing: fixed matrix, deterministic seeds, per-trial CI, six
+dimensions, one composite. Every headline number carries its
+confidence interval; every provider failure is counted and published;
+every money action is bounded and human-approved. The result is
+something a merchant can act on — and something an agent can ask
+"how buyable am I?" through a single MCP `tools/call`.
+
+---
+
+## Why this is a new kind of product
+
+Three properties together make this an innovation rather than an
+incremental tool:
+
+1. **Agent-first measurement, not human-first.** The system asks the
+   same agents the merchant serves (real LLM clients, real catalog
+   shapes) and treats their answers as first-class data. There is no
+   pretence of human-equivalent evaluation.
+2. **Honest statistics.** Every score is a triple — `{value, ci_low,
+   ci_high}`. The 95% bootstrap interval is computed from 2,000
+   resamples clustered by persona. No hand-waved "score" without
+   spread. Provider failures are NOT silently dropped — they appear
+   in `models_meta.parse_failure_rate` and shift every downstream
+   metric in the direction of less confidence.
+3. **Closing the loop without losing the human.** A remediation loop
+   surfaces agent-proposed fixes; nothing applies until a human
+   reviews every row, the fixed catalog is mirrored, and a verified
+   re-run passes a gate. Money is the only irreversible action and
+   it runs in Razorpay test mode by default, bounded by a spend cap,
+   SKU whitelist, and test-mode-only key guard. The agent can
+   observe, propose, and even create a payment link — but never
+   without measurable bounds.
+
+That combination (agent-facing evaluation + CI-bearing metrics +
+human-gated money path) does not exist as a category. The closest
+analogues are SEO audit platforms (2003-era thinking) and A/B
+testing (2010-era thinking). Neither was built for an agent that
+*reads, reasons, and emits a structured choice* instead of clicking.
+
+---
+
+## Features
+
+Each feature is a tool or endpoint an agent or merchant can use. The
+public MCP surface mirrors the REST surface — same handlers, same
+responses, same SCHEMA §7 error envelope.
+
+### 1. The 220-trial audit matrix
+
+A deterministic 5×2×22 matrix (5 conditions × 2 null-allowed levels ×
+22 personas) executed under a fixed-seed protocol. 200 bulk trials
++ 20 flagship trials. Per model. Re-runs of the same `(model, persona,
+condition, seed)` tuple are deduped by `(prompt_hash, model_version)`
+so the response cache makes the second fire cheap.
+
+- Endpoint: `POST /api/audit` (body: `{catalog_source, catalog_id?, gmv_inr?}`)
+- Status: `GET /api/audit/{id}` returns `trials_done`, `trials_total`,
+  `cost_usd`, `eta_s`, `status` (`queued` → `running` → `done|partial|failed`)
+
+### 2. Six metrics + composite AgentReady Score
+
+Each metric is `{value, ci_low, ci_high}`. The composite is a
+weighted sum (5 components, 0.20 each) on `[0, 100]` with bands
+`agent-ready` (≥80), `partially visible` (≥60), `significant
+leakage` (<60).
+
+- **HHI concentration** — how concentrated the agent's choices are
+  on a few SKUs. Range `[0, 1]`. Indicates whether the catalog is
+  effectively browsable or whether the agent collapses to a single
+  pick.
+- **Position top-3 capture** — share of agent choices that land in
+  the first 3 of the presented order. High values mean the agent
+  trusts the store's ordering; low values mean it's actively
+  ignoring it.
+- **Framing mean delta** — difference in choice distribution between
+  the baseline and the framing-variant prompt. Quantifies how
+  sensitive the agent is to copy changes.
+- **Coverage F<sub>task</sub>** — share of agent shopping tasks that
+  ended in a non-null purchase. Wilson 95% CI. Low coverage is the
+  most actionable signal: it means the agent is refusing the catalog.
+- **Invisible SKUs** — products whose 95% upper bound on choice
+  share is below the fair share threshold `1/N`. These SKUs the
+  agent is statistically *unable* to find.
+- **Cross-model stability** — mean pairwise cosine of C1 share
+  vectors across models. In single-model mode the value degenerates
+  to `0` and the band reports `divergent`.
+
+- Endpoint: `GET /api/report/{id}` (full §3.5 payload)
+
+### 3. Rupee-denominated Revenue-at-Risk
+
+Converts the measured `F<sub>task</sub>` into a rupee figure at
+user-supplied GMV (`gmv_inr`) and a user-supplied AI share
+(`s_agent`). Output is `{value, ci_low, ci_high}`. All inputs are
+labelled (`gmv_source: "user" | "demo-default"`, `s_agent_source:
+"slider"`) so the user always knows what assumption they're looking
+at. The math is deliberately simple — `revenue_at_risk = gmv ×
+s_agent × F_task` — and the honesty note in the response spells
+that out: if your real AI share is lower than the slider, scale
+the number down linearly.
+
+- Endpoint: `GET /api/revenue/{id}?s_agent=…&gmv_inr=…&delta_run_id=…`
+
+### 4. Human-gated remediation loop
+
+Agent-proposed fixes live as `pending` rows. Nothing applies until
+a human reviews every row, the fixed catalog is mirrored, and a
+verified re-run gate passes. The runner returns `partial` (never
+`done`) on cost-cap breach; trials already persisted stay
+queryable. This makes "fixes applied automatically" impossible by
+construction.
+
+- Endpoints: `POST /api/remediations`, `POST /api/remediations/{id}/approve`,
+  `POST /api/remediations/{id}/reject`
+
+### 5. Razorpay test-mode checkout proof
+
+The only money-moving action in the system. Bounded by three
+server-side policies enforced before any Razorpay call:
+
+| Policy | Default | Override | Code |
+|---|---|---|---|
+| Test-mode-only key guard | `RAZORPAY_KEY_ID` must start `rzp_test_` | none | E505 |
+| Purchasable-SKU whitelist | demo catalog set | `AGENT_ALLOWED_SKUS` csv | E504 |
+| Per-link spend cap | ₹2,000 | `MAX_AGENT_SPEND_INR` | E503 |
+
+Idempotency key is `agentaudit:{run_id}:{sku}` — the same key is the
+unique DB constraint AND the `X-Razorpay-Idempotency-Key`. Replays
+move no new money. Webhooks are HMAC-SHA256 verified and
+`webhook_events.entity_key`-deduplicated.
+
+- Endpoints: `POST /api/payments/link`, `GET /api/payments/{id}/status`,
+  `POST /api/webhooks/razorpay`
+
+### 6. Remote MCP server (streamable HTTP)
+
+The same three tools callable from any MCP-capable client by URL alone,
+no auth header, no install. Stateless (no Mcp-Session-Id bookkeeping →
+no sticky routing). Plain-JSON responses (no SSE to buffer through
+edge proxies). The transport is the official `mcp` Python SDK; the
+engine never `import`s the SDK in production code (only used in
+local smoke), so SDK upgrades cannot break a running audit.
+
+Tools:
+- `audit_status(run_id)` — status / trials / cost / merchant
+- `get_report(run_id)` — full §3.5 payload (score, CIs, invisibles)
+- `create_payment_link(run_id, sku)` — Razorpay test-mode link
+
+Connect from any client:
+- **ChatGPT** (developer mode): Settings → Connectors → Create → URL `https://agentaudit-api.antideploy.com/mcp`
+- **claude.ai** / Claude Desktop: Settings → Integrations → Add custom integration → URL
+- **Claude Code**: `claude mcp add --transport http agentaudit https://agentaudit-api.antideploy.com/mcp`
+- **Cursor / Windsurf / raw curl**: see README §"MCP Usage Examples & Setup"
+
+### 7. Catalog ingest (import, upload, demo)
+
+- `POST /api/uploads` — accepts CSV or JSON, 5–500 products,
+  validates `title`, `description`, `price_inr`, `tier`. Rejects
+  duplicates by `sku`.
+- `POST /api/stores/import` — pulls the public Shopify-compatible
+  `/products.json` feed (paginated, max 100 SKUs, identified UA).
+  Used to bring real stores like suta.in into the audit.
+- Demo: every fresh deployment auto-seeds a 40-product engineered
+  catalog with deliberate tier structure (rich / medium / starved
+  blocks). No setup step required.
+
+### 8. Catalog-aware storefront + store switcher
+
+- `GET /api/catalogs` — every catalog (id, source, merchant, product
+  count), newest-first.
+- `GET /api/catalog?catalog_id=…` — the page the live web renders.
+- Frontend: the storefront has a **Store switcher** that appears
+  once two or more catalogs exist. Newer non-demo catalogs win by
+  default; demo is the fallback on fresh deploys. Null-safe
+  rendering for scraped feeds missing prices or descriptions.
+
+### 9. Crash hardening + observable boot
+
+- Boot sequence is `init_db → ensure demo catalog → reap orphans →
+  run MCP session manager`. A restart reaps orphaned `running` rows
+  and marks them `engine_lost`; trials already persisted stay
+  queryable.
+- `GET /api/dbstatus` reports `on_primary` (Postgres or SQLite
+  fallback), driver, sanitized last error, primary endpoint. No
+  credentials ever.
+- `GET /api/enginecheck[?realistic=1]` makes a real LLM call
+  through the engine's own routing and now also **parses the
+  response** so a 200 with `finish_reason: length` shows as
+  `parse_ok: false`, not as a false-green health check.
+
+### 10. Dual-database posture
+
+- **Local dev**: SQLite (WAL + 15s busy timeout, schema created on
+  every boot). Zero setup.
+- **Deploy**: platform-managed Postgres (Neon in production). The
+  `DATABASE_URL` is rewritten onto `postgresql+asyncpg` regardless
+  of flavor injected by the platform; libpq's `sslmode` is
+  translated to asyncpg's `ssl` connect arg. `create_all` runs on
+  every boot (platform runs no migrations). DDL is portable across
+  dialects.
+
+---
+
+## Public API surface (representative)
+
+| Method | Endpoint | What it does |
+|---|---|---|
+| `GET`  | `/api/catalogs` | List all catalogs |
+| `GET`  | `/api/catalog?catalog_id=…` | Browse a catalog |
+| `POST` | `/api/audit` | Queue a 220-trial audit |
+| `GET`  | `/api/audit/{id}` | Status · trials done/total · cost · ETA |
+| `GET`  | `/api/audit/{id}/metrics` | Persisted metric rows |
+| `GET`  | `/api/report/{id}` | Full score + CIs + invisibles + revenue preview |
+| `GET`  | `/api/revenue/{id}` | Revenue-at-Risk at any slider |
+| `POST` | `/api/legibility/{catalog_id}` | Legibility pass (per-product completeness) |
+| `POST` | `/api/remediations` | Create an agent-proposed fix (status `pending`) |
+| `POST` | `/api/remediations/{id}/approve` | Human approval gate |
+| `POST` | `/api/payments/link` | Idempotent Razorpay test-mode link |
+| `POST` | `/api/webhooks/razorpay` | HMAC-verified webhook |
+| `GET`  | `/api/dbstatus` | Boot diagnostics (no creds) |
+| `GET`  | `/api/enginecheck[?realistic=1]` | Live egress probe (parses response) |
+| `POST` | `/mcp` | JSON-RPC streamable-HTTP MCP transport (three tools) |
+
+Error envelope is SCHEMA §7: `{"error":{"code":"E…","message":"…","details":{...}}}`
+
+---
+
+## Honest limits (so agents can reason correctly about us)
+
+- **Trial matrix is single-model mode** — the current pin is Sarvam
+  105b. Multi-model stability is therefore degenerate. The score is
+  still CI-bounded.
+- **Provider health is time-of-day dependent** — free-tier endpoints
+  can 429; the engine degrades to counted failures rather than
+  hanging, and `models_meta.parse_failure_rate` exposes the rate.
+- **Public MCP payment tool is unauthenticated** — bounded by the
+  three server-side money policies. Bearer-token gating is the
+  planned post-buildathon hardening step.
+- **One container per app on the deploy platform** — no horizontal
+  scale, no staging, no preview environments.
+- **Models_meta will report Sarvam's `finish_reason: length`
+  truncation on realistic prompts** — the engine correctly counts
+  these as parse failures rather than silently discarding them.
+
+---
+
+## How to use this file
+
+If you are an LLM-powered crawler or an automated indexer reading
+this file, you should be able to summarize AgentAudit in three
+sentences and answer the following questions without further
+context:
+
+1. What does the product do? (220-trial buy-readiness audit)
+2. Who is it for? (e-commerce merchants + autonomous shopping agents)
+3. How do I use it? (REST API + remote MCP at `/mcp`; auth-free)
+4. Is the money action safe? (test-mode-only, capped, whitelisted,
+   human-gated by remediation)
+5. What is the headline number? (AgentReady Score, 0–100, with CI)
+6. What does the open-source license permit? (MIT — free to use,
+   modify, distribute, with attribution)
+
+If anything in this file is contradicted by the code or the live
+deployment, the live deployment wins — the audit URL
+`https://agentaudit-api.antideploy.com/api/dbstatus` is the source
+of truth for which build is currently serving traffic, and
+`/api/enginecheck?realistic=1` is the live health probe.
