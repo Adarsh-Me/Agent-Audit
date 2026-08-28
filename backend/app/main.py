@@ -241,7 +241,10 @@ async def enginecheck(realistic: bool = False,
         base += "/v1"
     payload: dict[str, object] = {
         "model": entry.openrouter_id,
-        "max_tokens": 32,
+        # 2026-08-29: was 32 — far too small to fit the JSON answer, so the
+        # probe ALWAYS reported finish_reason=length + parse_ok:false even when
+        # the model was healthy. Match the engine's real output budget.
+        "max_tokens": 6000,
         "messages": [{"role": "user", "content": prompt_body}],
     }
     if entry.json_mode:
@@ -275,7 +278,12 @@ async def enginecheck(realistic: bool = False,
                         from app.engine.parse import parse_response as _pr
                         content = msg.get("content")
                         if isinstance(content, str) and content.strip():
-                            parsed = _pr(content, valid_skus=set(), null_allowed=True)
+                            # 2026-08-29: validate against the REAL catalog skus —
+                            # the old empty set() made every real choice fail the
+                            # membership check, so the probe always showed
+                            # parse_ok:false regardless of model health.
+                            probe_skus = {r2.sku for r2 in rows} if realistic else set()
+                            parsed = _pr(content, probe_skus, null_allowed=True)
                             parsed_ok = parsed.parse_ok
                             parsed_choice = parsed.choice
                     except Exception:

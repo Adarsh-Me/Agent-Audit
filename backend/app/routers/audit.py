@@ -242,7 +242,13 @@ async def compute_and_store_metrics(session: AsyncSession, run_id: str) -> dict:
             if boot[sku][1] < 1.0 / (n_catalog or 40)
         ],
         "score": {**_ci((point["score"], *boot.get("score", (point["score"],) * 2))),
-                  "components": point["components"]},
+                  "components": point["components"],
+                  # 2026-08-29: when zero usable missions, 4 of the 5 components
+                  # collapse to degenerate values (visibility/position/coverage all
+                  # "perfect" because there is no data) — the score is then just
+                  # 60 + 20×completeness and is NOT a real measurement. Flag it so
+                  # the UI shows "not measurable" instead of a confident number.
+                  "not_measurable": point["coverage"]["n"] == 0},
         "models_meta": [
             {"id": m, "version": None, "parse_failure_rate": r}
             for m, r in sorted(point["parse_rate"].items())

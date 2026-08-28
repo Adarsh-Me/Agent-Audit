@@ -147,10 +147,10 @@ export interface MetricsPayload {
     per_slot: number[];
   };
   framing: { mean_delta: CiNum; per_product: FramingProduct[] };
-  coverage: { f_task: CiNum; nulls_by_persona: PersonaNull[] };
+  coverage: { f_task: CiNum & { usable_trials?: number | null }; nulls_by_persona: PersonaNull[] };
   stability: { matrix: Record<string, number>; mean: CiNum; band: string };
   invisible_skus: InvisibleSku[];
-  score: CiNum & { components: ScoreComponents };
+  score: CiNum & { components: ScoreComponents; not_measurable?: boolean };
   models_meta: ModelMeta[];
   cost_usd: number;
   manifest_ref: string | null;

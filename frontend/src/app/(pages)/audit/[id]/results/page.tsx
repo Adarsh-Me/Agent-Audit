@@ -253,19 +253,32 @@ export default function ResultsPage() {
         <CardContent className='flex flex-col gap-4 py-5'>
           <div className='grid items-center gap-6 md:grid-cols-2 xl:grid-cols-3'>
             <div className='flex min-w-0 items-center gap-4'>
-              <ScoreDial score={report.score.value} lo={report.score.ci_low} hi={report.score.ci_high} size={104} />
+              {report.score.not_measurable ? (
+                <div className='text-muted-foreground flex size-[104px] shrink-0 items-center justify-center rounded-full border-2 border-dashed text-center font-mono text-[11px]'>
+                  not<br />measurable
+                </div>
+              ) : (
+                <ScoreDial score={report.score.value} lo={report.score.ci_low} hi={report.score.ci_high} size={104} />
+              )}
               <div>
                 <div className='text-muted-foreground font-mono text-xs font-medium tracking-wide uppercase'>
                   <Term tip='One number for how easily AI shopping agents can find, trust, and buy from your catalog. Higher = more agent-ready.'>
                     AgentReady Score
                   </Term>
                 </div>
-                <div
-                  className='text-muted-foreground mt-1 font-mono text-xs'
-                  title={CI_TIP}
-                >
-                  typical range [{report.score.ci_low.toFixed(1)} – {report.score.ci_high.toFixed(1)}]
-                </div>
+                {report.score.not_measurable ? (
+                  <div className='text-muted-foreground mt-1 text-xs'>
+                    0 usable shopping missions — the provider returned no parseable
+                    answers, so the score is not measurable. Re-run when the model is healthy.
+                  </div>
+                ) : (
+                  <div
+                    className='text-muted-foreground mt-1 font-mono text-xs'
+                    title={CI_TIP}
+                  >
+                    typical range [{report.score.ci_low.toFixed(1)} – {report.score.ci_high.toFixed(1)}]
+                  </div>
+                )}
                 <div className='mt-2 flex flex-wrap gap-1.5'>
                   <SourceChip kind='measured' label={`${report.trials.total} simulated shopping missions`} />
                   <StatusChip status={report.status} />
@@ -301,6 +314,18 @@ export default function ResultsPage() {
                     </span>{' '}
                     <SourceChip kind='measured' /> · traffic share is your assumption{' '}
                     <SourceChip kind='assumed' />
+                  </div>
+                </>
+              ) : preview?.not_measurable ? (
+                <>
+                  <div className='text-muted-foreground mt-1 text-2xl font-semibold'>—</div>
+                  <div className='text-muted-foreground mt-1.5 text-xs'>
+                    <SourceChip kind='assumed' label='not measurable' /> No usable shopping
+                    missions — the model provider returned no parseable answers, so the
+                    walk-away rate is unknown.{' '}
+                    <Link href={`/audit/${runId}/revenue`} className='text-primary underline underline-offset-4'>
+                      details →
+                    </Link>
                   </div>
                 </>
               ) : null}
