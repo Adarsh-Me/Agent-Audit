@@ -6,6 +6,7 @@ import { type ComponentType } from 'react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
 // Next Imports
+import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 
@@ -555,9 +556,15 @@ const SidebarLayout = () => {
               className='gap-3 bg-transparent! px-2'
               render={<Link href={`${themeConfig.homePageUrl}`} />}
             >
-              <span className='bg-primary/15 text-primary flex size-8 shrink-0 items-center justify-center rounded-lg border border-primary/25'>
-                <Icon.ScanSearchIcon className='size-4' />
-              </span>
+              {/* Favicon as the brand mark */}
+              <Image
+                src='/favicon-512.png'
+                alt={`${themeConfig.templateName} logo`}
+                width={32}
+                height={32}
+                priority
+                className='size-8 shrink-0'
+              />
               <div className='flex flex-col items-start gap-1'>
                 <span className='font-pixel text-base leading-none text-nowrap'>{themeConfig.templateName}</span>
                 <span className='text-muted-foreground font-mono text-[10px] leading-none text-nowrap'>
