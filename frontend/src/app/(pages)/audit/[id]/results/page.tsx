@@ -255,7 +255,7 @@ export default function ResultsPage() {
             <div className='flex min-w-0 items-center gap-4'>
               <ScoreDial score={report.score.value} lo={report.score.ci_low} hi={report.score.ci_high} size={104} />
               <div>
-                <div className='text-muted-foreground text-xs font-medium tracking-wide uppercase'>
+                <div className='text-muted-foreground font-mono text-xs font-medium tracking-wide uppercase'>
                   <Term tip='One number for how easily AI shopping agents can find, trust, and buy from your catalog. Higher = more agent-ready.'>
                     AgentReady Score
                   </Term>
@@ -274,7 +274,7 @@ export default function ResultsPage() {
             </div>
 
             <div className='min-w-0 break-words'>
-              <div className='text-muted-foreground text-xs font-medium tracking-wide uppercase'>
+              <div className='text-muted-foreground font-mono text-xs font-medium tracking-wide uppercase'>
                 Revenue at risk / month{' '}
                 <Term tip='If AI agents drive the traffic share you pick below, this is the monthly revenue affected when agents cannot complete a purchase on your store.'>
                   @ {(sAgent * 100).toFixed(0)}% agent traffic
@@ -383,7 +383,8 @@ export default function ResultsPage() {
             <StatCard k='AI cost' v={usd(report.cost_usd)} sub='provider spend, hard-capped — never silent overspend' />
             <StatCard
               k='Run id'
-              v={<span className='font-mono text-base'>{report.run_id.slice(0, 8)}</span>}
+              v={report.run_id.slice(0, 8)}
+              tone='mono'
               sub={report.manifest_ref ?? 'live run'}
             />
           </div>

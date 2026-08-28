@@ -13,19 +13,29 @@ export function StatCard({
   k,
   v,
   sub,
+  tone = 'default',
   className
 }: {
   k: ReactNode
   v: ReactNode;
   sub?: ReactNode;
+  /** 'default' uses the pixel value font; 'mono' keeps the value mono (ids/codes). */
+  tone?: 'default' | 'mono';
   className?: string
 }) {
   return (
     <Card size='sm' className={cn('gap-0 py-4', className)}>
       <CardContent className='px-4'>
-        <div className='text-muted-foreground text-xs font-medium tracking-wide uppercase'>{k}</div>
-        <div className='mt-1.5 text-2xl font-semibold tabular-nums'>{v}</div>
-        {sub ? <div className='text-muted-foreground mt-1 text-xs'>{sub}</div> : null}
+        <div className='text-muted-foreground font-mono text-xs font-medium tracking-wide uppercase'>{k}</div>
+        <div
+          className={cn(
+            'mt-1.5 text-2xl font-semibold tabular-nums',
+            tone === 'mono' ? 'font-mono tracking-tight' : 'font-pixel leading-none'
+          )}
+        >
+          {v}
+        </div>
+        {sub ? <div className='text-muted-foreground mt-1 font-mono text-[11px]'>{sub}</div> : null}
       </CardContent>
     </Card>
   )
