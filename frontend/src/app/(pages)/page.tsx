@@ -4,7 +4,15 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 
-import { ArrowRightIcon, FlaskConicalIcon, GlobeIcon, UploadIcon } from 'lucide-react'
+import {
+  ArrowRightIcon,
+  FlaskConicalIcon,
+  GaugeIcon,
+  GlobeIcon,
+  PlayIcon,
+  SparklesIcon,
+  UploadIcon
+} from 'lucide-react'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -35,7 +43,7 @@ import {
   type UploadResponse
 } from '@/lib/api'
 import { getLastRun, rememberRun } from '@/lib/runs'
-import { ErrorBox } from '@/components/agentaudit/bits'
+import { ErrorBox, StatCard, Term } from '@/components/agentaudit/bits'
 import { RunsDashboard } from '@/components/agentaudit/RunsDashboard'
 import { LimitationsFooter } from '@/components/agentaudit/LimitationsFooter'
 
@@ -109,10 +117,11 @@ export default function LandingPage() {
   }
 
   return (
-    <div className='flex flex-col gap-8'>
+    <div className='flex flex-col gap-10'>
       {/* ---------- hero ---------- */}
-      <section className='rounded-xl border bg-gradient-to-b from-primary/10 via-primary/5 to-transparent px-8 py-12'>
-        <div className='grid gap-8'>
+      <section className='rounded-2xl border border-primary/20 bg-gradient-to-b from-primary/10 via-primary/5 to-transparent px-8 py-12'>
+        <div className='grid gap-10 lg:grid-cols-[1.2fr_1fr] lg:items-center'>
+          {/* left — pitch */}
           <div className='flex flex-col gap-6'>
             <Badge variant='outline' className='border-primary/30 bg-primary/10 h-6 px-2.5 text-xs text-[oklch(0.78_0.12_258)]'>
               <FlaskConicalIcon data-icon='inline-start' />
@@ -151,6 +160,47 @@ export default function LandingPage() {
               </p>
             ) : null}
           </div>
+
+          {/* right — "what you get" panel */}
+          <div className='flex flex-col gap-4'>
+            <div className='grid grid-cols-2 gap-4'>
+              <StatCard
+                k='What it measures'
+                v='6 signals'
+                sub='HHI · position · framing · coverage · invisibles · stability'
+                className='border-primary/20'
+              />
+              <StatCard
+                k='Headline output'
+                v='0–100'
+                sub='AgentReady Score, CI-bounded'
+                className='border-primary/20'
+              />
+              <StatCard
+                k='Confidence'
+                v='95%'
+                sub='bootstrap CIs on every number'
+                className='border-primary/20'
+              />
+              <StatCard
+                k='Money path'
+                v='Gated'
+                sub='Razorpay test-mode, capped & human-approved'
+                className='border-primary/20'
+              />
+            </div>
+            <div className='rounded-xl border bg-card/60 p-4 text-sm'>
+              <div className='flex items-center gap-2 text-muted-foreground text-xs font-medium uppercase'>
+                <SparklesIcon className='text-primary size-4' />
+                The honest part
+              </div>
+              <p className='text-muted-foreground mt-1.5 leading-relaxed'>
+                Provider failures are counted, not hidden. If an AI agent misspells your product or
+                the model truncates, you see it in the failure rate — never a silently optimistic
+                score.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -161,6 +211,35 @@ export default function LandingPage() {
           </Button>
         </ErrorBox>
       ) : null}
+
+      {/* ---------- how it works ---------- */}
+      <section className='grid gap-4 md:grid-cols-3'>
+        {[
+          {
+            icon: <UploadIcon />,
+            title: '1 · Bring your catalog',
+            body: 'Pick the demo store, upload a CSV/JSON, or import a live Shopify-style feed. No login, no scraping of your checkout.'
+          },
+          {
+            icon: <PlayIcon />,
+            title: '2 · Run 220 missions',
+            body: 'Fixed-seed, controlled trials across 20 shopper personas and 3 test conditions. Every answer is recorded — wins and walk-aways.'
+          },
+          {
+            icon: <GaugeIcon />,
+            title: '3 · Read the score',
+            body: 'One AgentReady Score with its CI, plus per-product fixes that stay human-approved until you say go.'
+          }
+        ].map(s => (
+          <Card key={s.title} className='border-primary/15'>
+            <CardHeader>
+              <div className='text-primary [&>svg]:size-5'>{s.icon}</div>
+              <CardTitle className='text-base'>{s.title}</CardTitle>
+              <CardDescription className='leading-relaxed'>{s.body}</CardDescription>
+            </CardHeader>
+          </Card>
+        ))}
+      </section>
 
       {/* ---------- source cards ---------- */}
       <div className='grid gap-4 md:grid-cols-2'>
@@ -176,6 +255,12 @@ export default function LandingPage() {
               measured numbers.
             </CardDescription>
           </CardHeader>
+          <CardContent>
+            <Button onClick={startDemo} disabled={phase === 'starting'}>
+              {phase === 'starting' ? 'Queuing…' : 'Audit the demo store'}
+              <ArrowRightIcon data-icon='inline-end' />
+            </Button>
+          </CardContent>
         </Card>
 
         <Card>
