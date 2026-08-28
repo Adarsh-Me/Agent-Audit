@@ -152,12 +152,12 @@ export default function LandingPage() {
               </p>
             ) : null}
           </div>
-          <div className='hidden lg:flex lg:justify-center'>
+          <div className='flex w-full justify-center lg:justify-center'>
             <Peep
               src='/illustrations/openpeeps/peep-57.svg'
               alt=''
               loading='eager'
-              className='h-80 w-auto opacity-80'
+              className='h-48 w-auto opacity-80 sm:h-64 lg:h-80'
             />
           </div>
         </div>
