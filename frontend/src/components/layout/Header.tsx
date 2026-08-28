@@ -20,10 +20,6 @@ import { SidebarTrigger } from '@/components/ui/sidebar'
 const Header = () => {
   const pathname = usePathname()
 
-  // The landing page (/) renders its own marketing top-nav header, so suppress
-  // the app's breadcrumb/sidebar header there to avoid a duplicate bar.
-  if (pathname === '/') return null
-
   const segments = pathname.split('/').filter(Boolean)
 
   return (

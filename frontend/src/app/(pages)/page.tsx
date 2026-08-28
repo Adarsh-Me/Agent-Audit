@@ -46,7 +46,6 @@ import { getLastRun, rememberRun } from '@/lib/runs'
 import { ErrorBox, StatCard, Term } from '@/components/agentaudit/bits'
 import { RunsDashboard } from '@/components/agentaudit/RunsDashboard'
 import { LimitationsFooter } from '@/components/agentaudit/LimitationsFooter'
-import HeaderLanding from '@/components/layout/HeaderLanding'
 
 type Phase = 'idle' | 'uploading' | 'uploaded' | 'starting'
 
@@ -119,11 +118,6 @@ export default function LandingPage() {
 
   return (
     <div className='flex flex-col gap-10'>
-      {/* ---------- landing top nav ---------- */}
-      <div className='-mx-4 -mt-8 sm:-mx-8'>
-        <HeaderLanding />
-      </div>
-
       {/* ---------- hero ---------- */}
       <section className='rounded-2xl border border-primary/20 bg-gradient-to-b from-primary/10 via-primary/5 to-transparent px-8 py-12'>
         <div className='grid gap-10 lg:grid-cols-[1.2fr_1fr] lg:items-center'>
