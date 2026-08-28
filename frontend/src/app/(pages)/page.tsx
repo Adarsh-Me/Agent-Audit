@@ -154,10 +154,10 @@ export default function LandingPage() {
           </div>
           <div className='hidden lg:flex lg:justify-center'>
             <Peep
-              src='/illustrations/openpeeps/peep-standing-28.svg'
+              src='/illustrations/openpeeps/peep-57.svg'
               alt=''
               loading='eager'
-              className='h-80 w-auto'
+              className='h-80 w-auto opacity-80'
             />
           </div>
         </div>

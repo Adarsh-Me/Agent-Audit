@@ -19,9 +19,9 @@ const NotFound = () => {
         </Button>
       </div>
       <Peep
-        src='/illustrations/openpeeps/peep-104.svg'
+        src='/illustrations/openpeeps/peep-57.svg'
         alt=''
-        className='h-20 w-auto opacity-40'
+        className='h-28 w-auto opacity-55'
       />
     </div>
   )

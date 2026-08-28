@@ -95,9 +95,9 @@ export function RunsDashboard({ refreshKey = 0 }: { refreshKey?: number }) {
         ) : rows.length === 0 ? (
           <div className='flex flex-col items-center gap-6 py-8 text-center'>
             <Peep
-              src='/illustrations/openpeeps/peep-13.svg'
+              src='/illustrations/openpeeps/peep-46.svg'
               alt=''
-              className='h-24 w-auto opacity-50'
+              className='h-32 w-auto opacity-65'
             />
             <p className='text-muted-foreground text-sm'>
               No runs yet — start a demo audit or import a real store above.
