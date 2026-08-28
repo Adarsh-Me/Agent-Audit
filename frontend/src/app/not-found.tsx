@@ -3,7 +3,6 @@ import Link from 'next/link'
 
 // Component Imports
 import { Button } from '@/components/ui/button'
-import { Peep } from '@/components/Peep'
 
 // SVG Imports
 import Icon404 from '@/assets/svg/404'
@@ -18,11 +17,6 @@ const NotFound = () => {
           Go back to home
         </Button>
       </div>
-      <Peep
-        src='/illustrations/openpeeps/peep-57.svg'
-        alt=''
-        className='h-28 w-auto opacity-55'
-      />
     </div>
   )
 }

@@ -172,10 +172,11 @@ export interface RevenueInputsEcho {
   gmv_inr: { value: number; source: "user" | "demo-default"; note: string };
   s_agent: { value: number; source: string; note: string };
   f_task: {
-    value: number;
+    value: number | null;
     source: "measured";
-    ci_low: number;
-    ci_high: number;
+    ci_low: number | null;
+    ci_high: number | null;
+    usable_trials: number | null;
     note: string;
   };
 }
@@ -192,10 +193,13 @@ export interface RevenueResponse {
   run_id: string;
   status: RunStatus;
   inputs: RevenueInputsEcho;
-  revenue_at_risk_inr: RupeeRange;
+  revenue_at_risk_inr: RupeeRange | null;
   honesty_note: string;
   recoverable_inr: RupeeRange | null;
   delta_f: CiNum | null;
+  not_measurable?: boolean;
+  not_measurable_note?: string;
+  zero_measured_note?: string;
 }
 
 export interface ReportResponse extends MetricsPayload {

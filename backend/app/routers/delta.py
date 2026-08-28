@@ -70,6 +70,7 @@ async def get_delta(rerun_run_id: str,
         f_task=mb["coverage"]["f_task"], f_task_ci=(mb["coverage"]["ci_low"],
                                                     mb["coverage"]["ci_high"]),
         delta_f=(d_point, d_lo, d_hi),
+        usable_trials=mb["coverage"].get("n"),
     ))
 
     improved = ma["coverage"]["f_task"] < mb["coverage"]["f_task"]

@@ -38,7 +38,6 @@ import { getLastRun, rememberRun } from '@/lib/runs'
 import { ErrorBox } from '@/components/agentaudit/bits'
 import { RunsDashboard } from '@/components/agentaudit/RunsDashboard'
 import { LimitationsFooter } from '@/components/agentaudit/LimitationsFooter'
-import { Peep } from '@/components/Peep'
 
 type Phase = 'idle' | 'uploading' | 'uploaded' | 'starting'
 
@@ -113,7 +112,7 @@ export default function LandingPage() {
     <div className='flex flex-col gap-8'>
       {/* ---------- hero ---------- */}
       <section className='rounded-xl border bg-gradient-to-b from-primary/10 via-primary/5 to-transparent px-8 py-12'>
-        <div className='grid gap-8 lg:grid-cols-2 lg:items-start lg:gap-16'>
+        <div className='grid gap-8'>
           <div className='flex flex-col gap-6'>
             <Badge variant='outline' className='border-primary/30 bg-primary/10 h-6 px-2.5 text-xs text-[oklch(0.78_0.12_258)]'>
               <FlaskConicalIcon data-icon='inline-start' />
@@ -151,14 +150,6 @@ export default function LandingPage() {
                 </Link>
               </p>
             ) : null}
-          </div>
-          <div className='flex w-full justify-center lg:justify-center'>
-            <Peep
-              src='/illustrations/openpeeps/peep-57.svg'
-              alt=''
-              loading='eager'
-              className='h-48 w-auto opacity-80 sm:h-64 lg:h-80'
-            />
           </div>
         </div>
       </section>

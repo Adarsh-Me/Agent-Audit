@@ -115,6 +115,24 @@ export default function RevenuePage() {
         <ErrorBox code={error.code} message={error.message} />
       ) : !data ? (
         <PanelSkeleton lines={5} />
+      ) : data.not_measurable ? (
+        <Card className='border-amber-500/40'>
+          <CardHeader>
+            <CardTitle>Revenue at Risk — not measurable</CardTitle>
+            <CardDescription>
+              The walk-away rate could not be measured for this run.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className='flex flex-col gap-3'>
+            <div className='text-3xl font-semibold tabular-nums'>—</div>
+            <p className='text-muted-foreground text-sm'>{data.not_measurable_note}</p>
+            <p className='text-muted-foreground text-xs'>
+              0 usable shopping missions — every trial failed to parse or the provider errored.
+              ₹0 here would mean <em>unknown</em>, not safe. Re-run the audit when the model
+              provider is healthy.
+            </p>
+          </CardContent>
+        </Card>
       ) : (
         <>
           {/* ---------- scenario controls ---------- */}
@@ -191,16 +209,21 @@ export default function RevenuePage() {
                   className='text-3xl font-semibold tabular-nums'
                   title='95% confidence interval, persona-cluster bootstrap, B = 2,000'
                 >
-                  {inr(data.revenue_at_risk_inr.value)}/mo{' '}
+                  {inr(data.revenue_at_risk_inr!.value)}/mo{' '}
                   <span className='text-muted-foreground font-mono text-sm font-normal'>
-                    [{inr(data.revenue_at_risk_inr.ci_low)} – {inr(data.revenue_at_risk_inr.ci_high)}]
+                    [{inr(data.revenue_at_risk_inr!.ci_low)} – {inr(data.revenue_at_risk_inr!.ci_high)}]
                   </span>
                 </div>
                 <div className='text-muted-foreground mt-3 text-xs'>
                   <SourceChip kind='scenario' /> adjusted by the walk-away rate{' '}
-                  <Ci v={data.inputs.f_task.value} lo={data.inputs.f_task.ci_low} hi={data.inputs.f_task.ci_high} fmt={n => n.toFixed(4)} />{' '}
+                  <Ci v={data.inputs.f_task.value!} lo={data.inputs.f_task.ci_low!} hi={data.inputs.f_task.ci_high!} fmt={n => n.toFixed(4)} />{' '}
                   <SourceChip kind='measured' label='[measured · live shopping missions]' />
                 </div>
+                {data.zero_measured_note ? (
+                  <p className='text-emerald-600 mt-3 text-xs dark:text-emerald-400'>
+                    {data.zero_measured_note}
+                  </p>
+                ) : null}
               </CardContent>
             </Card>
 
@@ -311,9 +334,9 @@ export default function RevenuePage() {
                     <TableCell className='text-sm'>Walk-away rate (agents who bought nothing)</TableCell>
                     <TableCell className='font-mono text-xs tabular-nums'>
                       <Ci
-                        v={data.inputs.f_task.value * 100}
-                        lo={data.inputs.f_task.ci_low * 100}
-                        hi={data.inputs.f_task.ci_high * 100}
+                        v={(data.inputs.f_task.value ?? 0) * 100}
+                        lo={(data.inputs.f_task.ci_low ?? 0) * 100}
+                        hi={(data.inputs.f_task.ci_high ?? 0) * 100}
                         fmt={n => `${n.toFixed(1)}%`}
                       />
                     </TableCell>

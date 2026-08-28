@@ -48,6 +48,7 @@ async def get_report(run_id: str, session: AsyncSession = Depends(get_session)) 
     rev = compute_revenue(RevenueInputs(
         gmv_inr=800_000, gmv_source="demo-default", s_agent=0.20, s_agent_source="slider",
         f_task=f["value"], f_task_ci=(f["ci_low"], f["ci_high"]),
+        usable_trials=f.get("usable_trials"),
     ))
 
     products = (
@@ -101,6 +102,6 @@ async def get_revenue(run_id: str,
     rev = compute_revenue(RevenueInputs(
         gmv_inr=gmv_inr or 800_000, gmv_source=gmv_source, s_agent=s_agent,
         s_agent_source="slider", f_task=f["value"], f_task_ci=(f["ci_low"], f["ci_high"]),
-        delta_f=delta_f,
+        delta_f=delta_f, usable_trials=f.get("usable_trials"),
     ))
     return {"run_id": run_id, "status": run.status, **rev}

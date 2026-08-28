@@ -224,7 +224,8 @@ async def compute_and_store_metrics(session: AsyncSession, run_id: str) -> dict:
         "coverage": {
             "f_task": {"value": point["coverage"]["f_task"],
                        "ci_low": point["coverage"]["ci_low"],
-                       "ci_high": point["coverage"]["ci_high"]},
+                       "ci_high": point["coverage"]["ci_high"],
+                       "usable_trials": point["coverage"]["n"]},
             "nulls_by_persona": point["coverage"]["nulls_by_persona"],
         },
         "stability": {

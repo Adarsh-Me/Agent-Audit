@@ -120,3 +120,30 @@ def test_recoverable_uses_delta_ci():
     assert rec["value"] == round(800_000 * 0.20 * 0.114)
     assert rec["ci_low"] == round(800_000 * 0.20 * 0.076)
     assert rec["ci_high"] == round(800_000 * 0.20 * 0.153)
+
+
+def test_zero_usable_trials_refuses_r0():
+    """wilson_ci(n=0) is a [0,1] 'no data' sentinel → f_task would be 0.0.
+    compute_revenue must return revenue_at_risk_inr=None + not_measurable
+    rather than a confident ₹0 (unknown disguised as safe)."""
+    inputs = RevenueInputs(gmv_inr=800_000, gmv_source="demo-default", s_agent=0.20,
+                           s_agent_source="slider", f_task=0.0, f_task_ci=(0.0, 1.0),
+                           usable_trials=0)
+    out = compute_revenue(inputs)
+    assert out["not_measurable"] is True
+    assert out["revenue_at_risk_inr"] is None
+    assert out["inputs"]["f_task"]["value"] is None
+    assert out["inputs"]["f_task"]["usable_trials"] == 0
+    assert out["recoverable_inr"] is None
+
+
+def test_measured_true_zero_has_note():
+    """f_task truly 0 but with usable missions is a measured ₹0 — flags a note,
+    not not_measurable."""
+    inputs = RevenueInputs(gmv_inr=800_000, gmv_source="demo-default", s_agent=0.20,
+                           s_agent_source="slider", f_task=0.0, f_task_ci=(0.0, 0.02),
+                           usable_trials=100)
+    out = compute_revenue(inputs)
+    assert out.get("not_measurable") is None
+    assert out["revenue_at_risk_inr"]["value"] == 0
+    assert "measured result here" in out["zero_measured_note"]
