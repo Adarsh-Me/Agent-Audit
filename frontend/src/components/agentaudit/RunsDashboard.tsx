@@ -28,6 +28,7 @@ import {
   TableRow
 } from '@/components/ui/table'
 import { ErrorBox, StatusChip, Term } from '@/components/agentaudit/bits'
+import { Peep } from '@/components/Peep'
 import { cn } from '@/lib/utils'
 import { ApiError, listRuns, type RunSummaryRow } from '@/lib/api'
 import { num1, pct, usd } from '@/lib/format'
@@ -92,9 +93,16 @@ export function RunsDashboard({ refreshKey = 0 }: { refreshKey?: number }) {
         ) : rows === null ? (
           <p className='text-muted-foreground text-sm'>Loading runs…</p>
         ) : rows.length === 0 ? (
-          <p className='text-muted-foreground text-sm'>
-            No runs yet — start a demo audit or import a real store above.
-          </p>
+          <div className='flex flex-col items-center gap-6 py-8 text-center'>
+            <Peep
+              src='/illustrations/openpeeps/peep-13.svg'
+              alt=''
+              className='h-24 w-auto opacity-50'
+            />
+            <p className='text-muted-foreground text-sm'>
+              No runs yet — start a demo audit or import a real store above.
+            </p>
+          </div>
         ) : (
           <Table>
             <TableHeader>

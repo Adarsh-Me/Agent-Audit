@@ -38,6 +38,7 @@ import { getLastRun, rememberRun } from '@/lib/runs'
 import { ErrorBox } from '@/components/agentaudit/bits'
 import { RunsDashboard } from '@/components/agentaudit/RunsDashboard'
 import { LimitationsFooter } from '@/components/agentaudit/LimitationsFooter'
+import { Peep } from '@/components/Peep'
 
 type Phase = 'idle' | 'uploading' | 'uploaded' | 'starting'
 
@@ -112,42 +113,54 @@ export default function LandingPage() {
     <div className='flex flex-col gap-8'>
       {/* ---------- hero ---------- */}
       <section className='rounded-xl border bg-gradient-to-b from-primary/10 via-primary/5 to-transparent px-8 py-12'>
-        <Badge variant='outline' className='border-primary/30 bg-primary/10 mb-6 h-6 px-2.5 text-xs text-[oklch(0.78_0.12_258)]'>
-          <FlaskConicalIcon data-icon='inline-start' />
-          220 controlled shopping missions · real AI agents
-        </Badge>
-        <h1 className='font-pixel max-w-3xl text-2xl leading-snug text-balance sm:text-3xl'>
-          Can AI shopping agents actually buy from you?
-        </h1>
-        <p className='text-muted-foreground mt-5 max-w-2xl text-base leading-relaxed text-pretty'>
-          AgentAudit runs 220 controlled agent trials across your catalog and measures whether AI
-          shoppers can see your products, choose them fairly, and carry a purchase through to
-          payment.
-        </p>
-        <p className='text-muted-foreground mt-3 max-w-2xl text-sm leading-relaxed'>
-          Merchants have SEO for Google&rsquo;s crawler. This is the equivalent check for the agents
-          now choosing products on your customers&rsquo; behalf.
-        </p>
-        <div className='mt-8 flex flex-wrap items-center gap-4'>
-          <Button size='lg' onClick={startDemo} disabled={phase === 'starting'}>
-            {phase === 'starting' ? 'Queuing…' : 'Run the demo audit'}
-            <ArrowRightIcon data-icon='inline-end' />
-          </Button>
-          <span className='text-muted-foreground text-xs'>
-            Takes ~2–15 min · the demo costs $0 · spend is hard-capped at $30 per audit
-          </span>
+        <div className='grid gap-8 lg:grid-cols-2 lg:items-start lg:gap-16'>
+          <div className='flex flex-col gap-6'>
+            <Badge variant='outline' className='border-primary/30 bg-primary/10 h-6 px-2.5 text-xs text-[oklch(0.78_0.12_258)]'>
+              <FlaskConicalIcon data-icon='inline-start' />
+              220 controlled shopping missions · real AI agents
+            </Badge>
+            <h1 className='font-pixel max-w-3xl text-2xl leading-snug text-balance sm:text-3xl'>
+              Can AI shopping agents actually buy from you?
+            </h1>
+            <p className='text-muted-foreground max-w-2xl text-base leading-relaxed text-pretty'>
+              AgentAudit runs 220 controlled agent trials across your catalog and measures whether AI
+              shoppers can see your products, choose them fairly, and carry a purchase through to
+              payment.
+            </p>
+            <p className='text-muted-foreground max-w-2xl text-sm leading-relaxed'>
+              Merchants have SEO for Google&rsquo;s crawler. This is the equivalent check for the agents
+              now choosing products on your customers&rsquo; behalf.
+            </p>
+            <div className='flex flex-wrap items-center gap-4'>
+              <Button size='lg' onClick={startDemo} disabled={phase === 'starting'}>
+                {phase === 'starting' ? 'Queuing…' : 'Run the demo audit'}
+                <ArrowRightIcon data-icon='inline-end' />
+              </Button>
+              <span className='text-muted-foreground text-xs'>
+                Takes ~2–15 min · the demo costs $0 · spend is hard-capped at $30 per audit
+              </span>
+            </div>
+            {lastRun ? (
+              <p className='text-muted-foreground text-sm'>
+                Resume last run{' '}
+                <Link
+                  href={`/audit/${lastRun}/results`}
+                  className='text-primary font-mono text-xs underline underline-offset-4 hover:underline'
+                >
+                  {lastRun.slice(0, 8)} →
+                </Link>
+              </p>
+            ) : null}
+          </div>
+          <div className='hidden lg:flex lg:justify-center'>
+            <Peep
+              src='/illustrations/openpeeps/peep-standing-28.svg'
+              alt=''
+              loading='eager'
+              className='h-80 w-auto'
+            />
+          </div>
         </div>
-        {lastRun ? (
-          <p className='text-muted-foreground mt-5 text-sm'>
-            Resume last run{' '}
-            <Link
-              href={`/audit/${lastRun}/results`}
-              className='text-primary font-mono text-xs underline underline-offset-4 hover:underline'
-            >
-              {lastRun.slice(0, 8)} →
-            </Link>
-          </p>
-        ) : null}
       </section>
 
       {error ? (
