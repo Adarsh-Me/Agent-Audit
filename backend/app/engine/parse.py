@@ -14,6 +14,18 @@ _FENCE_RE = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL)
 _OBJ_RE = re.compile(r"\{.*\}", re.DOTALL)
 _PID_RE = re.compile(r'"product_id"\s*:\s*(null|"[^"]*")')
 
+# 2026-08-29: live-fire fix — models wrap the sku in markdown/link brackets or
+# quotes ("[shopify-var-123]", "\"sku_001\""). Strip wrapping punctuation before
+# the membership check so the answer is measured instead of discarded.
+_CHOICE_STRIP = "[](){} \t\"'"
+
+
+def _normalize_choice(choice: object) -> object:
+    if not isinstance(choice, str):
+        return choice
+    stripped = choice.strip().strip(_CHOICE_STRIP).strip()
+    return stripped if stripped else None
+
 
 @dataclass
 class ParsedChoice:
@@ -73,6 +85,7 @@ def parse_response(raw: str, valid_skus: set[str],
         reason = None
 
     def finish(choice: object) -> ParsedChoice:
+        choice = _normalize_choice(choice)
         if choice is None:
             if not null_allowed:
                 return ParsedChoice(
