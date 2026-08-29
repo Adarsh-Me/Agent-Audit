@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import Catalog, Merchant, Product, Run, Trial
 from app.db.session import get_session
+from app.stats.legibility import mean_completeness
 from app.stats.metrics import compute_all
 
 router = APIRouter()
@@ -105,7 +106,14 @@ async def list_runs(
         summary: dict | None = None
         if any(t["parse_ok"] for t in trials):
             try:
-                point = compute_all(trials, product_count or 40, perms=0)
+                # 2026-08-29: the dashboard score must MATCH the results page.
+                # Previously compute_all ran with perms=0 and NO completeness, so
+                # position_indep (from permutation) and data_completeness were
+                # skipped → the dashboard showed a different score than the
+                # results page. Use the same authoritative inputs now.
+                completeness = await mean_completeness(session, run.catalog_id)
+                point = compute_all(trials, product_count or 40,
+                                    completeness=completeness, perms=10000)
                 summary = _outcome_summary(point, trials)
             except Exception:  # noqa: BLE001 — dashboard never 500s on odd partials
                 summary = None
