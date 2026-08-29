@@ -156,7 +156,9 @@ export default function FixesPage() {
           <CardDescription>
             No fixes proposed yet for this run. The generator flags starved-tier and low-legibility
             products and drafts title / description / structured-data rewrites — nothing is applied
-            without your approval.
+            without your approval. For a live-store import, zero flags means every listing scored
+            above the legibility threshold — a clean bill; the demo store deliberately contains
+            starved listings so the full flow is visible.
           </CardDescription>
         </CardHeader>
         <CardContent>
