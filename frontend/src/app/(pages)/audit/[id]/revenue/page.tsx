@@ -126,11 +126,6 @@ export default function RevenuePage() {
           <CardContent className='flex flex-col gap-3'>
             <div className='text-3xl font-semibold tabular-nums'>—</div>
             <p className='text-muted-foreground text-sm'>{data.not_measurable_note}</p>
-            <p className='text-muted-foreground text-xs'>
-              0 usable shopping missions — every trial failed to parse or the provider errored.
-              ₹0 here would mean <em>unknown</em>, not safe. Re-run the audit when the model
-              provider is healthy.
-            </p>
           </CardContent>
         </Card>
       ) : (

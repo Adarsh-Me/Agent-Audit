@@ -43,7 +43,7 @@ import {
   type UploadResponse
 } from '@/lib/api'
 import { getLastRun, rememberRun } from '@/lib/runs'
-import { ErrorBox, StatCard, Term } from '@/components/agentaudit/bits'
+import { ErrorBox, StatCard } from '@/components/agentaudit/bits'
 import { RunsDashboard } from '@/components/agentaudit/RunsDashboard'
 import { LimitationsFooter } from '@/components/agentaudit/LimitationsFooter'
 
@@ -123,7 +123,7 @@ export default function LandingPage() {
         <div className='grid gap-10 lg:grid-cols-[1.2fr_1fr] lg:items-center'>
           {/* left — pitch */}
           <div className='flex flex-col gap-6'>
-            <Badge variant='outline' className='border-primary/30 bg-primary/10 h-6 px-2.5 text-xs text-[oklch(0.78_0.12_258)]'>
+            <Badge variant='outline' className='border-primary/30 bg-primary/10 text-primary h-6 px-2.5 text-xs'>
               <FlaskConicalIcon data-icon='inline-start' />
               220 controlled shopping missions · real AI agents
             </Badge>
@@ -442,7 +442,7 @@ function StoreCard({
           <CardTitle>Connect a real store</CardTitle>
           <Badge
             variant='outline'
-            className='h-5 border-primary/30 bg-primary/10 px-1.5 text-xs text-[oklch(0.78_0.12_258)]'
+            className='text-primary h-5 border-primary/30 bg-primary/10 px-1.5 text-xs'
           >
             SHOPIFY
           </Badge>
