@@ -147,6 +147,9 @@ class Trial(Base):
     latency_ms: Mapped[int | None] = mapped_column(Integer)
     prompt_hash: Mapped[str] = mapped_column(Text)
     from_cache: Mapped[bool] = mapped_column(Boolean, default=False)  # SC-6
+    # 2026-08-29: head of the failing response / provider error — parse_ok=0
+    # runs were undiagnosable without it. Populated only on failed trials.
+    raw_head: Mapped[str | None] = mapped_column(Text)
     null_allowed: Mapped[bool] = mapped_column(Boolean)
     parse_ok: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

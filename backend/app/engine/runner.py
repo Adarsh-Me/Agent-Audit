@@ -83,6 +83,7 @@ class TrialOutcome:
     latency_ms: int
     from_cache: bool
     parse_ok: bool
+    raw_head: str | None = None  # first chars of the failing response / error
 
 
 @dataclass
@@ -305,6 +306,7 @@ class Runner:
                     from_cache=outcome.from_cache,
                     null_allowed=spec.null_allowed,
                     parse_ok=outcome.parse_ok,
+                    raw_head=outcome.raw_head,
                 ))
                 done += 1
                 if (len(batch) >= FLUSH_TRIALS or done == len(trials)
@@ -383,7 +385,8 @@ class Runner:
                 await emit({"type": "trial", "model": spec.model,
                             "persona_id": spec.persona_id, "condition": spec.condition,
                             "choice": None, "latency_ms": 0, "parse_ok": False})
-                return TrialOutcome(None, f"provider error: {exc}", 0, False, False)
+                return TrialOutcome(None, f"provider error: {exc}", 0, False, False,
+                                    raw_head=str(exc)[:400])
             ledger.add(spec.model, resp.cost_usd)
             last = resp
             parsed = parse_response(resp.content, valid_skus, ordinal_map,
@@ -409,7 +412,10 @@ class Runner:
         await emit({"type": "trial", "model": spec.model, "persona_id": spec.persona_id,
                     "condition": spec.condition, "choice": None, "latency_ms": last.latency_ms,
                     "parse_ok": False})
-        return TrialOutcome(None, None, last.latency_ms, False, False)
+        # 2026-08-29: keep the failing model output head — parse_ok=0 runs were
+        # undiagnosable without it (evidence endpoint showed nothing).
+        return TrialOutcome(None, None, last.latency_ms, False, False,
+                            raw_head=(last.content[:400] if last and last.content else None))
 
 
 async def execute_run(session_factory, deps: RunnerDeps, catalog_id: str, **kw) -> str:

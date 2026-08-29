@@ -31,12 +31,34 @@ async def lifespan(_: FastAPI):
     on_primary = await init_db()
     if not on_primary:
         print("[boot] serving on fallback SQLite — audit data resets on redeploy")
+    await _migrate_add_raw_head()
     await _ensure_demo_catalog()
     await _reap_orphaned_runs()
     # MCP streamable-HTTP transport: mounted sub-apps get no lifespan of their
     # own, so its session manager runs inside ours (see app/mcp_server.py).
     async with mcp_lifespan():
         yield
+
+
+async def _migrate_add_raw_head() -> None:
+    """create_all creates missing TABLES but never new COLUMNS — add trials.raw_head
+    for existing databases (2026-08-29 parse_ok=0 diagnosability column)."""
+    from sqlalchemy import text
+
+    from app.db.session import get_engine
+
+    try:
+        engine = get_engine()
+        async with engine.begin() as conn:
+            await conn.execute(text(
+                "ALTER TABLE trials ADD COLUMN IF NOT EXISTS raw_head TEXT"))
+    except Exception:  # noqa: BLE001 — SQLite has no IF NOT EXISTS for columns
+        try:
+            engine = get_engine()
+            async with engine.begin() as conn:
+                await conn.execute(text("ALTER TABLE trials ADD COLUMN raw_head TEXT"))
+        except Exception:  # noqa: BLE001 — column already exists
+            pass
 
 
 async def _ensure_demo_catalog() -> None:
@@ -188,12 +210,16 @@ async def dbstatus() -> dict:
 
 @app.get("/api/enginecheck")
 async def enginecheck(realistic: bool = False,
+                      t: float = 0.0,
+                      n: int = 1,
                       session: AsyncSession = Depends(get_session)) -> dict:
     """Live LLM calls FROM THIS CONTAINER — tiny probes by default, or pass
     ?realistic=1 to replay an audit-sized prompt built by the engine's own
     builder over the current default catalog (the 2026-08-26 deployed run
     recorded 640/640 unusable answers while identical keys worked from dev;
     this separates egress/credential failures from payload-size failures).
+    ?t=1.0 sends the runner's temperature; ?n=3 repeats the probe n times so
+    runner-specific variables (temperature, bursts) can be bisected in-container.
     Never echoes keys; provider bodies are truncated."""
     import httpx
     from sqlalchemy import select
@@ -247,6 +273,9 @@ async def enginecheck(realistic: bool = False,
         "max_tokens": 6000,
         "messages": [{"role": "user", "content": prompt_body}],
     }
+    # 2026-08-29: runner bisecting — ?t=1.0 replicates the runner's temperature.
+    if t > 0:
+        payload["temperature"] = t
     if entry.json_mode:
         payload["response_format"] = {"type": "json_object"}
     checks = [
@@ -258,43 +287,85 @@ async def enginecheck(realistic: bool = False,
             payload,
         ),
     ]
+    n = max(1, min(int(n), 5))
     results: dict[str, dict] = {}
     async with httpx.AsyncClient(timeout=90) as client:
         for name, url, headers, payload in checks:
-            try:
-                r = await client.post(url, json=payload, headers=headers)
-                body_preview = r.text[:200]
-                parsed_ok = False
-                parsed_choice = None
-                if r.status_code < 400:
-                    # 2026-08-27: realistic-mode probe now also tries to parse
-                    # the assistant content the same way the engine does, so
-                    # a 200 with content=null shows up as "parse_ok":false —
-                    # this is what the previous enginecheck missed (which made
-                    # the 28-min run's 0/220 parse failure look like a
-                    # passing health check).
-                    try:
-                        msg = r.json()["choices"][0]["message"]
-                        from app.engine.parse import parse_response as _pr
-                        content = msg.get("content")
-                        if isinstance(content, str) and content.strip():
-                            # 2026-08-29: validate against the REAL catalog skus —
-                            # the old empty set() made every real choice fail the
-                            # membership check, so the probe always showed
-                            # parse_ok:false regardless of model health.
-                            probe_skus = {r2.sku for r2 in rows} if realistic else set()
-                            parsed = _pr(content, probe_skus, null_allowed=True)
-                            parsed_ok = parsed.parse_ok
-                            parsed_choice = parsed.choice
-                    except Exception:
-                        pass
-                results[name] = {
-                    "http": r.status_code,
-                    "body": body_preview,
-                    "parse_ok": parsed_ok,
-                    "parsed_choice": parsed_choice,
-                }
-            except Exception as exc:  # noqa: BLE001 — diagnostics endpoint
-                results[name] = {"error": f"{type(exc).__name__}: {exc}"[:200]}
+            runs: list[dict] = []
+            for attempt in range(n):
+                try:
+                    r = await client.post(url, json=payload, headers=headers)
+                    body_preview = r.text[:200]
+                    parsed_ok = False
+                    parsed_choice = None
+                    content_head = None
+                    if r.status_code < 400:
+                        # 2026-08-27: realistic-mode probe now also tries to parse
+                        # the assistant content the same way the engine does, so
+                        # a 200 with content=null shows up as "parse_ok":false —
+                        # this is what the previous enginecheck missed (which made
+                        # the 28-min run's 0/220 parse failure look like a
+                        # passing health check).
+                        try:
+                            msg = r.json()["choices"][0]["message"]
+                            from app.engine.parse import parse_response as _pr
+                            content = msg.get("content")
+                            if isinstance(content, str) and content.strip():
+                                # 2026-08-29: validate against the REAL catalog skus —
+                                # the old empty set() made every real choice fail the
+                                # membership check, so the probe always showed
+                                # parse_ok:false regardless of model health.
+                                probe_skus = {r2.sku for r2 in rows} if realistic else set()
+                                parsed = _pr(content, probe_skus, null_allowed=True)
+                                parsed_ok = parsed.parse_ok
+                                parsed_choice = parsed.choice
+                                content_head = content[:160]
+                        except Exception:
+                            pass
+                    runs.append({
+                        "http": r.status_code,
+                        "body": body_preview,
+                        "parse_ok": parsed_ok,
+                        "parsed_choice": parsed_choice,
+                        "content_head": content_head,
+                    })
+                except Exception as exc:  # noqa: BLE001 — diagnostics endpoint
+                    runs.append({"error": f"{type(exc).__name__}: {exc}"[:200]})
+            results[name] = {"n": n, "temperature": t or None,
+                             "parse_ok_count": sum(1 for x in runs if x.get("parse_ok")),
+                             "runs": runs}
     out.update(results)
     return out
+
+
+@app.get("/api/debug/trials/{run_id}")
+async def debug_trial_failures(run_id: str,
+                               session: AsyncSession = Depends(get_session)) -> dict:
+    """Diagnose parse_ok=0 runs — samples the raw model output head captured on
+    failed trials (2026-08-29). Read-only, no credentials, truncated."""
+    from sqlalchemy import func, select
+
+    from app.db.models import Trial
+
+    rows = (
+        (await session.execute(
+            select(Trial.persona_id, Trial.condition, Trial.latency_ms, Trial.raw_head)
+            .where(Trial.run_id == run_id, Trial.parse_ok.is_(False))
+            .order_by(Trial.latency_ms.desc())
+            .limit(6)
+        ))
+        .all()
+    )
+    total_failed = (await session.scalar(
+        select(func.count()).select_from(Trial)
+        .where(Trial.run_id == run_id, Trial.parse_ok.is_(False))
+    )) or 0
+    return {
+        "run_id": run_id,
+        "failed": int(total_failed),
+        "samples": [
+            {"persona_id": r.persona_id, "condition": r.condition,
+             "latency_ms": r.latency_ms, "raw_head": (r.raw_head or "")[:400]}
+            for r in rows
+        ],
+    }
