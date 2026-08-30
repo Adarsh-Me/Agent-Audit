@@ -79,13 +79,10 @@ async def list_runs(
             select(func.count()).select_from(Product).where(Product.catalog_id == catalog.id)
         )).scalar()
 
-        # fixes needed = remediation-eligible listings (mirrors remediate/fixes.py flagging)
-        fixes_needed = (await session.execute(
-            select(func.count()).select_from(Product).where(
-                Product.catalog_id == run.catalog_id,
-                (Product.tier == "starved") | (Product.legibility_composite < 0.30),
-            )
-        )).scalar() or 0
+        # fixes needed = remediation-eligible listings (shared rule with
+        # remediate/fixes.py: starved / below-threshold, else weakest quartile)
+        from app.remediate.fixes import flagged_product_ids
+        fixes_needed = len(await flagged_product_ids(session, run.catalog_id))
 
         trials_rows = (
             (await session.execute(select(Trial).where(Trial.run_id == run.id)))

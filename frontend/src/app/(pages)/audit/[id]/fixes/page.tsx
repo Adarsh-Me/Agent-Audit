@@ -154,11 +154,11 @@ export default function FixesPage() {
         <CardHeader>
           <CardTitle>Remediation plan</CardTitle>
           <CardDescription>
-            No fixes proposed yet for this run. The generator flags starved-tier and low-legibility
-            products and drafts title / description / structured-data rewrites — nothing is applied
-            without your approval. For a live-store import, zero flags means every listing scored
-            above the legibility threshold — a clean bill; the demo store deliberately contains
-            starved listings so the full flow is visible.
+            No fixes proposed yet for this run. The generator flags starved or
+            below-threshold listings — and if your catalog clears that bar entirely, it
+            still surfaces the weakest quartile by legibility, so there is always an
+            actionable plan. Every fix is a drafted title / description / structured-data
+            rewrite, and nothing is applied without your approval.
           </CardDescription>
         </CardHeader>
         <CardContent>

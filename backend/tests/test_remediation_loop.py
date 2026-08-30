@@ -110,3 +110,44 @@ async def test_rerun_rebills_after_remediation(db_env):
         )).scalar()
     assert total == 220
     assert n_new > 200, "remediated rerun must be mostly fresh trials (SC-3)"
+
+async def test_weakest_quartile_fallback(db_env):
+    """2026-08-29: an all-'medium' catalog that clears the 0.30 bar still gets an
+    actionable plan — the weakest quartile by legibility, capped at 10."""
+    import math
+
+    from sqlalchemy import select, update
+
+    from app.db.models import Catalog, Product, Remediation
+    from app.remediate.fixes import flagged_product_ids
+
+    registry = load_model_registry()
+    async with db_env() as session:
+        catalog_id = await load_demo_catalog(session)
+
+    deps = RunnerDeps(registry=registry, client=RichBiasClient())
+    run_id = await Runner(db_env, deps).run_audit(catalog_id)
+
+    async with db_env() as session:
+        # flatten the catalog: everything 'medium' with healthy legibility
+        for i, p in enumerate((await session.execute(
+                select(Product).where(Product.catalog_id == catalog_id)
+        )).scalars().all()):
+            p.tier = "medium"
+            p.legibility_composite = 0.40 + (i % 40) * 0.012  # 0.40 .. 0.87
+        await session.commit()
+
+        gen = await generate_remediations(session, run_id)
+        expected = max(1, min(10, math.ceil(40 * 0.25)))
+        assert gen["created"] == expected
+
+        rems = (await session.execute(
+            select(Remediation).where(Remediation.run_id == run_id))).scalars().all()
+        assert len(rems) == expected
+        # the flagged ones must be the lowest-legibility products
+        legs = sorted(p.legibility_composite for p in (await session.execute(
+            select(Product).where(Product.catalog_id == catalog_id))).scalars().all())
+        cutoff = legs[expected - 1]
+        for r in rems:
+            p = await session.get(Product, r.product_id)
+            assert p.legibility_composite <= cutoff

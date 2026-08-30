@@ -10,6 +10,7 @@ fabricate specs for a real merchant's products (claim discipline L-2).
 from __future__ import annotations
 
 import json
+import math
 from datetime import datetime, timezone
 from typing import Any
 
@@ -83,6 +84,39 @@ def _demo_proposals(row: Product) -> list[dict[str, Any]]:
     return fixes
 
 
+async def flagged_product_ids(session: AsyncSession, catalog_id: str) -> list[str]:
+    """Listings the remediation plan targets — one source of truth for the
+    generator AND the dashboard's fixes_needed count.
+
+    Primary rule: starved tier OR legibility below the 0.30 visibility threshold.
+    2026-08-29: when a catalog clears that bar entirely (the common case for
+    real stores whose listings are all 'medium'), we still surface the WEAKEST
+    QUARTILE by legibility (capped at 10) — an always-actionable plan beats a
+    clean bill of health a merchant can't act on.
+    """
+    rows = (
+        (await session.execute(
+            select(Product).where(Product.catalog_id == catalog_id)
+        ))
+        .scalars()
+        .all()
+    )
+    primary = [
+        p.id for p in rows
+        if p.tier == "starved"
+        or (p.legibility_composite is not None and p.legibility_composite < 0.30)
+    ]
+    if primary or not rows:
+        return primary
+
+    scored = [p for p in rows if p.legibility_composite is not None]
+    if not scored:
+        return []
+    scored.sort(key=lambda p: p.legibility_composite)
+    weakest = max(1, min(10, math.ceil(len(scored) * 0.25)))
+    return [p.id for p in scored[:weakest]]
+
+
 async def generate_remediations(session: AsyncSession, run_id: str) -> dict:
     run = await session.get(Run, run_id)
     if run is None:
@@ -99,13 +133,10 @@ async def generate_remediations(session: AsyncSession, run_id: str) -> dict:
     cat = await session.get(Catalog, run.catalog_id)
     is_demo = cat is not None and cat.source in ("demo",)
 
+    flagged_ids = set(await flagged_product_ids(session, run.catalog_id))
     created, skipped = 0, 0
     for row in rows:
-        # flag rule: starved tier OR invisible (legibility below threshold)
-        flagged = row.tier == "starved" or (
-            row.legibility_composite is not None and row.legibility_composite < 0.30
-        )
-        if not flagged:
+        if row.id not in flagged_ids:
             skipped += 1
             continue
         existing = await session.scalar(
