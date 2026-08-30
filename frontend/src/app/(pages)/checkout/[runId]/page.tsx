@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils'
 import {
   ApiError,
   createPaymentLink,
+  getAudit,
   getCatalog,
   getPaymentStatus,
   type CatalogProduct,
@@ -117,10 +118,13 @@ export default function CheckoutPage() {
     setPhase('running')
 
     try {
-      // step 1 — real catalog read
+      // step 1 — real catalog read: the RUN'S OWN catalog (not the newest one —
+      // getCatalog() without an id resolves the newest import, which made the
+      // buy agent pick a sku the run's payment check couldn't find).
       addLine('step 1  tool: list_products', 'tool')
       await sleep(500)
-      const catalog = await getCatalog()
+      const status = await getAudit(runId)
+      const catalog = await getCatalog(status.catalog_id ?? undefined)
       addLine(`        → ${catalog.count} products received`, 'ok')
 
       // step 2 — scripted Deal-Hunter reasoning

@@ -90,6 +90,7 @@ export interface AuditStatusResponse {
   type: 'audit' | 'rerun';
   abort_reason?: string | null;
   merchant?: string | null;
+  catalog_id?: string | null;
   catalog_source?: string | null;
   started_at?: string | null;
   reason?: string | null;

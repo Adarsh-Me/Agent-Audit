@@ -152,6 +152,10 @@ async def get_audit(run_id: str, session: AsyncSession = Depends(get_session)) -
         "parent_run_id": run.parent_run_id,
         "type": run.type,
         "merchant": merchant_name,
+        # 2026-08-29: exposed so the checkout page can read the RUN's own catalog
+        # (getCatalog() with no id resolves the newest catalog, which breaks the
+        # buy agent whenever a newer import exists than the audited one).
+        "catalog_id": run.catalog_id,
         "catalog_source": catalog.source if catalog else None,
         "started_at": run.started_at.isoformat() if run.started_at else None,
         "abort_reason": getattr(run, "abort_reason", None),

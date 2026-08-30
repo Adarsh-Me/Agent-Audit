@@ -18,7 +18,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import httpx
 
 from app.config import Settings, get_settings
-from app.constants import AGENT_DEFAULT_ALLOWED_SKUS
 from app.db.models import Payment, Product, Run, WebhookEvent
 from app.db.session import get_session
 from app.errors import AppError
@@ -40,12 +39,21 @@ class LinkRequest(BaseModel):
     sku: str
 
 
-def _allowed_skus(s: Settings) -> frozenset[str]:
-    """Merchant allowlist: AGENT_ALLOWED_SKUS csv if set, else the demo-store list."""
+def _allowed_skus(s: Settings):
+    """Agent purchasable set.
+
+    AGENT_ALLOWED_SKUS csv (explicit restrictor) wins when set. Otherwise the
+    default is the RUN'S OWN CATALOG — the E601 check in create_link already
+    proved the sku belongs to the audited catalog, and the ₹2,000 cap (E503)
+    plus test-mode-only keys (E505) still bound the money action. Returns None
+    to signal "run-catalog skus are purchasable" (checked inline against the
+    catalog query). The old default (hardcoded demo-store skus) made the buy
+    agent E504 on every real-store audit regardless of age.
+    """
     raw = s.agent_allowed_skus.strip()
     if raw:
         return frozenset(part.strip() for part in raw.split(",") if part.strip())
-    return frozenset(AGENT_DEFAULT_ALLOWED_SKUS)
+    return None  # None → run-catalog skus are purchasable
 
 
 def _enforce_test_mode(key_id: str) -> None:
@@ -99,9 +107,11 @@ async def create_link(body: LinkRequest,
 
     # Money-policy gates (SAFETY.md) — checked against the DB-stored price, so the
     # agent cannot influence the charged amount. Distinct codes name which policy
-    # fired: E504 whitelist (which SKU) vs E503 cap (how much).
+    # fired: E504 whitelist (which SKU) vs E503 cap (how much). Without an explicit
+    # AGENT_ALLOWED_SKUS the run's own catalog is the purchasable set.
     s = get_settings()
-    if body.sku not in _allowed_skus(s):
+    allowed = _allowed_skus(s)
+    if allowed is not None and body.sku not in allowed:
         raise AppError("E504", f"sku not on agent purchasable whitelist: {body.sku} — "
                                "add it via AGENT_ALLOWED_SKUS to allow purchase",
                        status_code=403,

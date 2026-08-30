@@ -101,14 +101,17 @@ async def test_over_cap_sku_rejected_e503(db_env, monkeypatch):
         app.dependency_overrides.clear()
 
 
-async def test_non_whitelisted_sku_rejected_e504(db_env, monkeypatch):
-    """Off-demo-catalog SKU exists in the run's catalog but isn't on the allowlist."""
+async def test_run_catalog_sku_purchasable_without_csv(db_env, monkeypatch):
+    """2026-08-29 semantic change: without an explicit AGENT_ALLOWED_SKUS csv the
+    RUN'S OWN CATALOG is the purchasable set — the buy agent works on real-store
+    audits of any age. The sku was already proven to belong to the run's catalog
+    by the E601 check; the ₹2,000 cap and test-mode gates still apply."""
     run_id = await _seed_run(db_env)
     async with db_env() as session:
         run = await session.get(Run, run_id)
         session.add(Product(catalog_id=run.catalog_id, sku="sku_901",
-                            title="Off-list Gadget", price_inr=899,
-                            description="exists in catalog, not on whitelist",
+                            title="Catalog Gadget", price_inr=899,
+                            description="in-catalog sku, no csv set",
                             tier="medium"))
         await session.commit()
 
@@ -116,12 +119,9 @@ async def test_non_whitelisted_sku_rejected_e504(db_env, monkeypatch):
     try:
         with TestClient(app) as tc:
             r = tc.post("/api/payments/link", json={"run_id": run_id, "sku": "sku_901"})
-            assert r.status_code == 403, r.text
-            err = r.json()["error"]
-            assert err["code"] == "E504"
-            assert err["details"]["policy"] == "sku_whitelist"
-            assert err["details"]["sku"] == "sku_901"
-            assert "AGENT_ALLOWED_SKUS" in err["message"]
+            assert r.status_code == 201, r.text
+            body = r.json()
+            assert body["amount_inr"] == 899
     finally:
         app.dependency_overrides.clear()
 
